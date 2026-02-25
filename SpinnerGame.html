@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"/>
+        <title>Sandbox</title>
+    </head>
+    <script>
+        window.addEventListener("load", (e) => { init(); });
+        
+        function init() {
+            const output = document.getElementById("output");
+            output.innerText = "Loaded OK";
+
+            const button = document.getElementById("button");
+            const debug_button = document.getElementById("debug_button");
+            button.addEventListener("click", (e) => { connect(); });
+            debug_button.addEventListener("click", (e) => { debug_button_click(); });
+        }
+
+        function connect() {
+            const service_uid = "00001623-1212-efde-1623-785feabcd123";
+            const characteristic_uid = "00001624-1212-efde-1623-785feabcd123";
+            const setup_data = new Uint8Array([10, 0, 0x41, 1, 0x04, 1, 0, 0, 0, 1]);
+            
+            // 10   => Size
+            // 0    => Hub 0
+            // 0x41 => Message Type - Port Input Format Setup (Single) [0x41]
+            // 1    => BOTH BUTTONS = 1 (LEFT ONLY = 0)
+            // 0x04 => REMOTE_BUTTONS_MODE_KEYSD = 4
+            // 1    => DELTA_INTERVAL = 1 (4 BYTES)
+            // 1    => ENABLE_NOTIFICATIONS
+            
+            navigator.bluetooth.requestDevice({
+                filters: [{ name: "Handset"}],
+                optionalServices: [service_uid] })
+                .then(device => device.gatt.connect())
+                .then(server => server.getPrimaryService(service_uid))
+                .then(service => service.getCharacteristic(characteristic_uid))
+                .then(characteristic => {
+                    characteristic.writeValueWithResponse(setup_data)
+                        .then(response => {
+                            characteristic.startNotifications();
+                        })
+                        .then(() => {
+                            characteristic.addEventListener("characteristicvaluechanged", change_handler)
+                            output.innerText = "Listening..."
+                        })
+                })
+                .catch(e => { output.innerText = e; });
+        }
+
+        var button_state = {
+            left_plus: false,
+            left_stop: false,
+            left_minus: false,
+            center: false,
+            right_plus: false,
+            right_stop: false,
+            right_minus: false
+        };
+
+        function change_handler(e) {
+            const data = e.target.value.buffer ? e.target.value : new DataView(e.target.value);
+            let button_state_changed = false;
+
+            if (data.getUint8(0) == 5) {
+                if (data.getUint8(2) == 0x08) { // LWP3_MSG_TYPE_HW_NET_CMDS
+                    button_state.center = data.getUint8(4) == 1;
+                    button_state_changed = true;
+                }
+            }
+            else if (data.getUint8(0) == 7) {
+                if (data.getUint8(2) == 0x45) { // LWP3_MSG_TYPE_PORT_VALUE
+                    if (data.getUint8(3) == 0) { // LEFT
+                        button_state.left_plus = data.getUint8(4) == 1;
+                        button_state.left_stop = data.getUint8(5) == 1;
+                        button_state.left_minus = data.getUint8(6) == 1;
+                        button_state_changed = true;
+                    }
+                    else if (data.getUint8(3) == 1) { // RIGHT
+                        button_state.right_plus = data.getUint8(4) == 1;
+                        button_state.right_stop = data.getUint8(5) == 1;
+                        button_state.right_minus = data.getUint8(6) == 1;
+                        button_state_changed = true;
+                    }
+                }
+            }
+            else {
+                console.log("Unhandled Event: " + data)
+            }
+
+            if (button_state_changed) {
+                console.log(button_state);
+            }
+        }
+    </script>
+    <style>
+        .button {
+            background-color: #404040;
+            color: lightgray;
+            padding: 15px 32px;
+            font-size: 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            text-align: center;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+        .button:hover {
+            background-color: #606060; 
+        }
+        .button:active {
+            background-color: #808080;
+        }
+        .output {
+            border: 2px solid black;
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        canvas {
+            background: #eeeeee;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+    <body>
+        <button id="button" class="button">Connect</button>
+        <div id="output" class="output">YOU SHOULD NOT BE SEEING THIS!</div>
+        <canvas id="canvas" width="480" height="320"></canvas>
+        <button id="debug_button" class="button">Debug</button>
+    </body>
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        let dThetaDegrees = 0;
+        const centerX = 150;
+        const centerY = 150;
+        const rectSize = 50;
+        const halfSize = rectSize / 2;
+        const outerRadius = 100;
+        const innerRadius = 50;
+        
+        const ringSegmentStartDegrees = 75
+        const ringSegmentWidthDegrees = 300;
+
+        const wedgeSpacing = 5;
+        const wedgeStartDegrees = 45
+        const wedgeWidthDegrees = 360 - ringSegmentWidthDegrees;
+        const wedgeThickness = 20;
+        const wedgePaddingDegrees = 10;
+        
+        let statusColor = "red";
+        let wedgeMidDegrees = 0;
+        let wedgeOpeningMidDegrees = 0;
+
+        function degreesToRadians(degrees) {
+            return degrees * Math.PI / 180;
+        }
+
+        function normalizeDegrees(degrees) {
+            return (degrees % 360 + 360) % 360;
+        }
+
+        function drawRingSegment() {
+            const startDegrees = normalizeDegrees(ringSegmentStartDegrees + dThetaDegrees);
+            const endDegrees = normalizeDegrees(startDegrees + ringSegmentWidthDegrees);
+            const wedgeWidthDegrees = 360 - ringSegmentWidthDegrees;
+            
+            wedgeOpeningMidDegrees = endDegrees + wedgeWidthDegrees / 2;
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, outerRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
+            ctx.arc(centerX, centerY, innerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
+            ctx.fillStyle = "blue";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawWedge() {
+            const wedgeOuterRadius = wedgeSpacing + outerRadius + wedgeThickness;
+            const wedgeInnerRadius = wedgeSpacing + outerRadius;
+            const startDegrees = wedgeStartDegrees + wedgePaddingDegrees;
+            const endDegrees = startDegrees + (wedgeWidthDegrees - 2 * wedgePaddingDegrees);;
+
+            wedgeMidDegrees = startDegrees + (endDegrees - startDegrees) / 2;
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, wedgeOuterRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
+            ctx.arc(centerX, centerY, wedgeInnerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
+            ctx.fillStyle = "black";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawRect() {
+            ctx.beginPath();
+            ctx.rect(centerX - halfSize,
+                centerY - halfSize,
+                rectSize,
+                rectSize);
+            ctx.fillStyle = statusColor;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function isTickInWedge() {
+            if (Math.abs(wedgeOpeningMidDegrees - wedgeMidDegrees) == 0) {
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawRect();
+            drawRingSegment();
+            drawWedge();
+
+            if (isTickInWedge()) {
+                statusColor = "green";
+                console.log("WIN");
+            }
+            else {
+                statusColor = "red";
+            }
+
+            dThetaDegrees += 1;
+        }
+
+    function debug_button_click() {
+        draw();
+    }
+    setInterval(draw, 10);
+    </script>
+</html>
