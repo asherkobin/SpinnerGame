@@ -134,25 +134,22 @@
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
         let dThetaDegrees = 0;
-        const centerX = 150;
-        const centerY = 150;
-        const rectSize = 50;
-        const halfSize = rectSize / 2;
-        const outerRadius = 100;
-        const innerRadius = 50;
-        
-        const ringSegmentStartDegrees = 75
-        const ringSegmentWidthDegrees = 300;
 
-        const wedgeSpacing = 5;
-        const wedgeStartDegrees = 45
-        const wedgeWidthDegrees = 360 - ringSegmentWidthDegrees;
-        const wedgeThickness = 20;
-        const wedgePaddingDegrees = 10;
+        const stopButtonSize = 50;
         
-        let statusColor = "red";
-        let wedgeMidDegrees = 0;
-        let wedgeOpeningMidDegrees = 0;
+        const tumblerCenterX = 150;
+        const tumblerCenterY = 150;
+        const tumblerStartRadius = 75;
+        const tumblerStartDegrees = 0;
+        const tumblerThickness = 50;
+
+        const keyPinWidthDegrees = 80;
+        const keyPinSpacing = 5;
+        const keyPinStartDegrees = 300
+        const keyPinThickness = 20;
+        const keyPinPaddingDegrees = 10;
+
+        const matchTolerance = 15;
 
         function degreesToRadians(degrees) {
             return degrees * Math.PI / 180;
@@ -162,50 +159,62 @@
             return (degrees % 360 + 360) % 360;
         }
 
-        function drawRingSegment() {
-            const startDegrees = normalizeDegrees(ringSegmentStartDegrees + dThetaDegrees);
-            const endDegrees = normalizeDegrees(startDegrees + ringSegmentWidthDegrees);
-            const wedgeWidthDegrees = 360 - ringSegmentWidthDegrees;
-            
-            wedgeOpeningMidDegrees = endDegrees + wedgeWidthDegrees / 2;
+        function drawTumbler() {
+            const innerRadius = tumblerStartRadius;
+            const outerRadius = innerRadius + tumblerThickness;
+            const startDegrees = normalizeDegrees(tumblerStartDegrees + dThetaDegrees);
+            const endDegrees = normalizeDegrees(startDegrees + 360 - keyPinWidthDegrees);
 
             ctx.beginPath();
-            ctx.arc(centerX, centerY, outerRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
-            ctx.arc(centerX, centerY, innerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
+            ctx.arc(tumblerCenterX, tumblerCenterY, outerRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
+            ctx.arc(tumblerCenterX, tumblerCenterY, innerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
             ctx.fillStyle = "blue";
             ctx.fill();
             ctx.closePath();
         }
 
-        function drawWedge() {
-            const wedgeOuterRadius = wedgeSpacing + outerRadius + wedgeThickness;
-            const wedgeInnerRadius = wedgeSpacing + outerRadius;
-            const startDegrees = wedgeStartDegrees + wedgePaddingDegrees;
-            const endDegrees = startDegrees + (wedgeWidthDegrees - 2 * wedgePaddingDegrees);;
+        function getCutMidDegrees() {
+            const startDegrees = normalizeDegrees(tumblerStartDegrees + dThetaDegrees);
+            const endDegrees = normalizeDegrees(startDegrees + 360 - keyPinWidthDegrees);
+            const cutMidDegrees = endDegrees + keyPinWidthDegrees / 2;
 
-            wedgeMidDegrees = startDegrees + (endDegrees - startDegrees) / 2;
+            return cutMidDegrees;
+        }
+
+        function getKeyPinMidDegrees() {
+            return keyPinStartDegrees + keyPinWidthDegrees / 2;
+        }
+        
+        function drawKeyPin(fillColor) {
+            const keyPinInnerRadius = tumblerStartRadius + tumblerThickness + keyPinSpacing;
+            const keyPinOuterRadius = keyPinInnerRadius + keyPinThickness;
+            
+            const startDegrees = keyPinStartDegrees + keyPinPaddingDegrees;
+            const endDegrees = startDegrees + (keyPinWidthDegrees - 2 * keyPinPaddingDegrees);;
             
             ctx.beginPath();
-            ctx.arc(centerX, centerY, wedgeOuterRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
-            ctx.arc(centerX, centerY, wedgeInnerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
-            ctx.fillStyle = "black";
+            ctx.arc(tumblerCenterX, tumblerCenterY, keyPinOuterRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
+            ctx.arc(tumblerCenterX, tumblerCenterY, keyPinInnerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
+            ctx.fillStyle = fillColor;
             ctx.fill();
             ctx.closePath();
         }
 
-        function drawRect() {
+        function drawStopButton() {
+            const halfSize = stopButtonSize / 2;
+
             ctx.beginPath();
-            ctx.rect(centerX - halfSize,
-                centerY - halfSize,
-                rectSize,
-                rectSize);
-            ctx.fillStyle = statusColor;
+            ctx.rect(tumblerCenterX - halfSize,
+                tumblerCenterY - halfSize,
+                stopButtonSize,
+                stopButtonSize);
+            ctx.fillStyle = "red";
             ctx.fill();
             ctx.closePath();
         }
 
-        function isTickInWedge() {
-            if (Math.abs(wedgeOpeningMidDegrees - wedgeMidDegrees) == 0) {
+        function isKeyPinInCut() {
+            if (Math.abs(getCutMidDegrees() - getKeyPinMidDegrees()) < matchTolerance) {
                 return true;
             }
             else {
@@ -215,17 +224,10 @@
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawRect();
-            drawRingSegment();
-            drawWedge();
-
-            if (isTickInWedge()) {
-                statusColor = "green";
-                console.log("WIN");
-            }
-            else {
-                statusColor = "red";
-            }
+            
+            drawTumbler();
+            drawKeyPin(isKeyPinInCut() ? "green" : "black");
+            drawStopButton();
 
             dThetaDegrees += 1;
         }
