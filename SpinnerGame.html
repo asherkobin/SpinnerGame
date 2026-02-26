@@ -127,27 +127,47 @@
     <body>
         <button id="button" class="button">Connect</button>
         <div id="output" class="output">YOU SHOULD NOT BE SEEING THIS!</div>
-        <canvas id="canvas" width="480" height="320"></canvas>
+        <canvas id="canvas" width="320" height="320"></canvas>
         <button id="debug_button" class="button">Debug</button>
     </body>
     <script>
+        class tutorialStuff {
+            constructor() {
+                /*
+                console.log("This is a tutorial for drawing a simple spinner game using HTML5 Canvas.");
+                console.log("The game consists of a rotating tumbler and a key pin. The player must stop the tumbler when the cut in the tumbler aligns with the key pin.");
+                console.log("The blue area represents the tumbler, and the black/green area represents the key pin. The red square is the stop button.");
+                console.log("The tumbler rotates continuously, and the player can click the stop button to try to align the cut with the key pin. If they align within a certain tolerance, the key pin turns green.");
+                */
+            }
+
+            draw() {
+            }
+        }
+
+    </script>
+    <script>
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
+        
+        tutorialStuff = new tutorialStuff();
+        
         let dThetaDegrees = 0;
 
-        const stopButtonSize = 50;
-        
-        const tumblerCenterX = 150;
-        const tumblerCenterY = 150;
-        const tumblerStartRadius = 75;
+        const tumblerCenterX = canvas.width / 2;
+        const tumblerCenterY = canvas.height / 2;
         const tumblerStartDegrees = 0;
+        const stopButtonSize = 50;
+        const tumblerStartRadius = 75
         const tumblerThickness = 50;
 
-        const keyPinWidthDegrees = 80;
-        const keyPinSpacing = 5;
-        const keyPinStartDegrees = 300
-        const keyPinThickness = 20;
+        let keyPinCenterX = tumblerCenterX;
+        let keyPinCenterY = tumblerCenterY;
+        let keyPinDegrees = 0;
+        let keyPinSpacing = 5;
+        let keyPinWidthDegrees = 80;
         const keyPinPaddingDegrees = 10;
+        const keyPinThickness = 20;
 
         const matchTolerance = 15;
 
@@ -182,19 +202,19 @@
         }
 
         function getKeyPinMidDegrees() {
-            return keyPinStartDegrees + keyPinWidthDegrees / 2;
+            return keyPinDegrees + keyPinWidthDegrees / 2;
         }
         
         function drawKeyPin(fillColor) {
             const keyPinInnerRadius = tumblerStartRadius + tumblerThickness + keyPinSpacing;
             const keyPinOuterRadius = keyPinInnerRadius + keyPinThickness;
             
-            const startDegrees = keyPinStartDegrees + keyPinPaddingDegrees;
+            const startDegrees = keyPinDegrees + keyPinPaddingDegrees;
             const endDegrees = startDegrees + (keyPinWidthDegrees - 2 * keyPinPaddingDegrees);;
             
             ctx.beginPath();
-            ctx.arc(tumblerCenterX, tumblerCenterY, keyPinOuterRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
-            ctx.arc(tumblerCenterX, tumblerCenterY, keyPinInnerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
+            ctx.arc(keyPinCenterX, keyPinCenterY, keyPinOuterRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
+            ctx.arc(keyPinCenterX, keyPinCenterY, keyPinInnerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
             ctx.fillStyle = fillColor;
             ctx.fill();
             ctx.closePath();
@@ -229,12 +249,80 @@
             drawKeyPin(isKeyPinInCut() ? "green" : "black");
             drawStopButton();
 
+            tutorialStuff.draw();
+
             dThetaDegrees += 1;
         }
 
-    function debug_button_click() {
-        draw();
-    }
-    setInterval(draw, 10);
+        function debug_button_click() {
+            draw();
+        }
+
+        function leftKeyPress(isPressed) {
+            if (isPressed) {
+                if (keyPinDegrees == 360) {
+                    keyPinDegrees = 0;
+                }
+                keyPinDegrees += 1;
+            }
+        }
+
+        function rightKeyPress(isPressed) {
+            if (isPressed) {
+                if (keyPinDegrees == 0) {
+                    keyPinDegrees = 360;
+                }
+                keyPinDegrees -= 1;
+            }
+        }
+
+        function downKeyPress(isPressed) {
+            if (isPressed) {
+                keyPinCenterX += 1;
+                keyPinCenterY += 1;
+            }
+        }
+
+        function upKeyPress(isPressed) {
+            if (isPressed) {
+                keyPinCenterX -= 1;
+                keyPinCenterY -= 1;
+            }
+        }
+
+        function keyDownHandler(e) {
+            if (e.key == "ArrowRight") {
+                rightKeyPress(true);
+            }
+            else if (e.key == "ArrowLeft") {
+                leftKeyPress(true);
+            }
+            else if (e.key == "ArrowUp") {
+                upKeyPress(true);
+            }
+            else if (e.key == "ArrowDown") {
+                downKeyPress(true);
+            }
+        }
+
+        function keyUpHandler(e) {
+            if (e.key == "ArrowRight") {
+                rightKeyPress(false);
+            }
+            else if (e.key == "ArrowLeft") {
+                leftKeyPress(false);
+            }
+            else if (e.key == "ArrowUp") {
+                upKeyPress(false);
+            }
+            else if (e.key == "ArrowDown") {
+                downKeyPress(false);
+            }
+        }
+
+        document.addEventListener("keydown", keyDownHandler);
+        document.addEventListener("keyup", keyUpHandler);
+        
+        setInterval(draw, 10);
     </script>
 </html>
