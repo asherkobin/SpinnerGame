@@ -202,7 +202,7 @@
         }
 
         function getKeyPinMidDegrees() {
-            return keyPinDegrees + keyPinWidthDegrees / 2;
+            return normalizeDegrees(keyPinDegrees + keyPinWidthDegrees / 2);
         }
         
         function drawKeyPin(fillColor) {
@@ -258,35 +258,67 @@
             draw();
         }
 
+        let leftKeyHeld = false;
+        let rightKeyHeld = false;
+        let upKeyHeld = false;
+        let downKeyHeld = false;
+
         function leftKeyPress(isPressed) {
+            keyPinCenterX = tumblerCenterX;
+            keyPinCenterY = tumblerCenterY;
+            
             if (isPressed) {
-                if (keyPinDegrees == 360) {
-                    keyPinDegrees = 0;
+                if (!leftKeyHeld) {
+                    if (keyPinDegrees == 360) {
+                        keyPinDegrees = 0;
+                    }
+                    leftKeyHeld = true;
+                    keyPinDegrees += 1;
                 }
-                keyPinDegrees += 1;
+                else {
+                    keyPinDegrees += 10;
+                }
+            }
+            else {
+                leftKeyHeld = false;
             }
         }
 
         function rightKeyPress(isPressed) {
+            keyPinCenterX = tumblerCenterX;
+            keyPinCenterY = tumblerCenterY;
+            
             if (isPressed) {
-                if (keyPinDegrees == 0) {
-                    keyPinDegrees = 360;
+                if (!rightKeyHeld) {
+                    if (keyPinDegrees == 0) {
+                        keyPinDegrees = 360;
+                    }
+                    rightKeyHeld = true;
+                    keyPinDegrees -= 1;
                 }
-                keyPinDegrees -= 1;
+                else {
+                    keyPinDegrees -= 10;
+                }
+            }
+            else {
+                rightKeyHeld = false;
             }
         }
 
+        const downKeyBehaviorTable = [[ 1,  1], [-1,  1], [ 1,  1], [-1,  1]];
+        const upKeyBehaviorTable   = [[-1, -1], [ 1, -1], [-1, -1], [ 1, -1]];
+
         function downKeyPress(isPressed) {
             if (isPressed) {
-                keyPinCenterX += 1;
-                keyPinCenterY += 1;
+                keyPinCenterX += downKeyBehaviorTable[Math.floor(getKeyPinMidDegrees() / 90)][0];
+                keyPinCenterY += downKeyBehaviorTable[Math.floor(getKeyPinMidDegrees() / 90)][1];
             }
         }
 
         function upKeyPress(isPressed) {
             if (isPressed) {
-                keyPinCenterX -= 1;
-                keyPinCenterY -= 1;
+                keyPinCenterX += upKeyBehaviorTable[Math.floor(getKeyPinMidDegrees() / 90)][0];
+                keyPinCenterY += upKeyBehaviorTable[Math.floor(getKeyPinMidDegrees() / 90)][1];
             }
         }
 
