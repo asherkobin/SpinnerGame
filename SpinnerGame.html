@@ -144,7 +144,6 @@
             draw() {
             }
         }
-
     </script>
     <script>
         const canvas = document.getElementById("canvas");
@@ -153,23 +152,29 @@
         tutorialStuff = new tutorialStuff();
         
         let dThetaDegrees = 0;
+        let keyPinInCut = false;
+        
+        const matchTolerance = 15;
+        const stopButtonSize = 50;
 
         const tumblerCenterX = canvas.width / 2;
         const tumblerCenterY = canvas.height / 2;
-        const tumblerStartDegrees = 0;
-        const stopButtonSize = 50;
-        const tumblerStartRadius = 75
-        const tumblerThickness = 50;
+        const tumblerInnerRadius = 75
+        const tumblerThickness = 60;
+
+        let tumblerKeyPinSpacing = 5;
 
         let keyPinCenterX = tumblerCenterX;
         let keyPinCenterY = tumblerCenterY;
-        let keyPinDegrees = 0;
-        let keyPinSpacing = 5;
-        let keyPinWidthDegrees = 80;
-        const keyPinPaddingDegrees = 10;
         const keyPinThickness = 20;
+        const keyPinWidthDegrees = 25;
+        const keyPinPaddingDegrees = 0;
+        let keyPinDegrees = 0;
 
-        const matchTolerance = 15;
+        let leftKeyDown = false;
+        let rightKeyDown = false;
+        let upKeyDown = false;
+        let downKeyDown = false;
 
         function degreesToRadians(degrees) {
             return degrees * Math.PI / 180;
@@ -179,11 +184,15 @@
             return (degrees % 360 + 360) % 360;
         }
 
+        function getTumblerCutDegrees() {
+            return 0;
+        }
+
         function drawTumbler() {
-            const innerRadius = tumblerStartRadius;
+            const innerRadius = tumblerInnerRadius;
             const outerRadius = innerRadius + tumblerThickness;
-            const startDegrees = normalizeDegrees(tumblerStartDegrees + dThetaDegrees);
-            const endDegrees = normalizeDegrees(startDegrees + 360 - keyPinWidthDegrees);
+            const startDegrees = normalizeDegrees(dThetaDegrees + keyPinWidthDegrees / 2 - keyPinPaddingDegrees);
+            const endDegrees = normalizeDegrees(startDegrees + 360 - keyPinWidthDegrees - 2 * keyPinPaddingDegrees);
 
             ctx.beginPath();
             ctx.arc(tumblerCenterX, tumblerCenterY, outerRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
@@ -192,26 +201,42 @@
             ctx.fill();
             ctx.closePath();
         }
-
-        function getCutMidDegrees() {
-            const startDegrees = normalizeDegrees(tumblerStartDegrees + dThetaDegrees);
-            const endDegrees = normalizeDegrees(startDegrees + 360 - keyPinWidthDegrees);
-            const cutMidDegrees = endDegrees + keyPinWidthDegrees / 2;
-
-            return cutMidDegrees;
-        }
-
-        function getKeyPinMidDegrees() {
-            return normalizeDegrees(keyPinDegrees + keyPinWidthDegrees / 2);
-        }
         
-        function drawKeyPin(fillColor) {
-            const keyPinInnerRadius = tumblerStartRadius + tumblerThickness + keyPinSpacing;
-            const keyPinOuterRadius = keyPinInnerRadius + keyPinThickness;
+        function drawKeyPin(fillColor) { 
+            let keyPinInnerRadius = tumblerInnerRadius + tumblerThickness + tumblerKeyPinSpacing;
+            let keyPinOuterRadius = keyPinInnerRadius + keyPinThickness;
+
+            if (upKeyDown) {
+                if (Math.abs(normalizeDegrees(dThetaDegrees - keyPinDegrees)) < matchTolerance) {
+                    keyPinInCut = true;
+                }
+                else {
+                    console.log("DOES NOT FIT");
+                }
+            }
+
+            if (downKeyDown && keyPinInCut) {
+                keyPinInCut = false;
+                keyPinDegrees = dThetaDegrees
+            }
+
+            if (leftKeyDown) {
+                keyPinDegrees = normalizeDegrees(keyPinDegrees + 5);
+            }
+            else if (rightKeyDown) {    
+                keyPinDegrees = normalizeDegrees(keyPinDegrees - 5);
+            }
+
+            if (keyPinInCut) {
+                keyPinOuterRadius = tumblerInnerRadius + tumblerThickness;
+                keyPinInnerRadius = keyPinOuterRadius - keyPinThickness;
+                
+                keyPinDegrees = dThetaDegrees - keyPinPaddingDegrees;
+            }
             
-            const startDegrees = keyPinDegrees + keyPinPaddingDegrees;
-            const endDegrees = startDegrees + (keyPinWidthDegrees - 2 * keyPinPaddingDegrees);;
-            
+            startDegrees = normalizeDegrees(keyPinDegrees - keyPinWidthDegrees / 2 + keyPinPaddingDegrees);
+            endDegrees = normalizeDegrees(startDegrees + keyPinWidthDegrees - 2 * keyPinPaddingDegrees);
+
             ctx.beginPath();
             ctx.arc(keyPinCenterX, keyPinCenterY, keyPinOuterRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
             ctx.arc(keyPinCenterX, keyPinCenterY, keyPinInnerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
@@ -220,141 +245,113 @@
             ctx.closePath();
         }
 
-        function drawStopButton() {
-            const halfSize = stopButtonSize / 2;
-
-            ctx.beginPath();
-            ctx.rect(tumblerCenterX - halfSize,
-                tumblerCenterY - halfSize,
-                stopButtonSize,
-                stopButtonSize);
-            ctx.fillStyle = "red";
-            ctx.fill();
-            ctx.closePath();
+        const stopButtonInfo = {
+                x: tumblerCenterX - stopButtonSize / 2,
+                y: tumblerCenterY - stopButtonSize / 2,
+                width: stopButtonSize,
+                height: stopButtonSize,
+                defaultColor: "darkred",
+                hoverColor: "red",
+                fontColor: "lightgray",
+                fontHoverColor: "white",
+                wasClicked: false
+            };
+    
+            function isPointInStopButton(x, y) {
+                return x >= stopButtonInfo.x && x <= stopButtonInfo.x + stopButtonInfo.width &&
+                    y >= stopButtonInfo.y && y <= stopButtonInfo.y + stopButtonInfo.height; 
         }
 
-        function isKeyPinInCut() {
-            if (Math.abs(getCutMidDegrees() - getKeyPinMidDegrees()) < matchTolerance) {
-                return true;
+        function drawStopButton() {
+            ctx.fillStyle = stopButtonInfo.defaultColor;
+            ctx.fillRect(stopButtonInfo.x, stopButtonInfo.y, stopButtonInfo.width, stopButtonInfo.height);
+
+            ctx.fillStyle = stopButtonInfo.fontColor;
+            ctx.font = "16px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("STOP", 1 + stopButtonInfo.x + stopButtonInfo.width / 2, 2 + stopButtonInfo.y + stopButtonInfo.height / 2);
+        }
+
+        function mouseMoveHandler(e) {
+            const canvasRect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - canvasRect.left;
+            const mouseY = e.clientY - canvasRect.top;
+
+            if (isPointInStopButton(mouseX, mouseY)) {
+                stopButtonInfo.color = stopButtonInfo.hoverColor;
+                stopButtonInfo.fontColor = stopButtonInfo.fontHoverColor;
             }
             else {
-                return false;
+                stopButtonInfo.color = stopButtonInfo.defaultColor;
+                stopButtonInfo.fontColor = "white";
+            }
+        }
+
+        function mouseClickHandler(e) {
+            const canvasRect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - canvasRect.left;
+            const mouseY = e.clientY - canvasRect.top;
+
+            if (isPointInStopButton(mouseX, mouseY)) {
+                stopButtonInfo.wasClicked = true;
             }
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             drawTumbler();
-            drawKeyPin(isKeyPinInCut() ? "green" : "black");
+            drawKeyPin(keyPinInCut ? "green" : "black");
             drawStopButton();
 
             tutorialStuff.draw();
 
-            dThetaDegrees += 1;
-        }
+            dThetaDegrees = normalizeDegrees(dThetaDegrees + 1);
 
-        function debug_button_click() {
-            draw();
-        }
-
-        let leftKeyHeld = false;
-        let rightKeyHeld = false;
-        let upKeyHeld = false;
-        let downKeyHeld = false;
-
-        function leftKeyPress(isPressed) {
-            keyPinCenterX = tumblerCenterX;
-            keyPinCenterY = tumblerCenterY;
+            if (stopButtonInfo.wasClicked) {
+                stopButtonInfo.wasClicked = false;
+                return;
+            }
             
-            if (isPressed) {
-                if (!leftKeyHeld) {
-                    if (keyPinDegrees == 360) {
-                        keyPinDegrees = 0;
-                    }
-                    leftKeyHeld = true;
-                    keyPinDegrees += 1;
-                }
-                else {
-                    keyPinDegrees += 10;
-                }
-            }
-            else {
-                leftKeyHeld = false;
-            }
-        }
-
-        function rightKeyPress(isPressed) {
-            keyPinCenterX = tumblerCenterX;
-            keyPinCenterY = tumblerCenterY;
-            
-            if (isPressed) {
-                if (!rightKeyHeld) {
-                    if (keyPinDegrees == 0) {
-                        keyPinDegrees = 360;
-                    }
-                    rightKeyHeld = true;
-                    keyPinDegrees -= 1;
-                }
-                else {
-                    keyPinDegrees -= 10;
-                }
-            }
-            else {
-                rightKeyHeld = false;
-            }
-        }
-
-        const downKeyBehaviorTable = [[ 1,  1], [-1,  1], [ 1,  1], [-1,  1]];
-        const upKeyBehaviorTable   = [[-1, -1], [ 1, -1], [-1, -1], [ 1, -1]];
-
-        function downKeyPress(isPressed) {
-            if (isPressed) {
-                keyPinCenterX += downKeyBehaviorTable[Math.floor(getKeyPinMidDegrees() / 90)][0];
-                keyPinCenterY += downKeyBehaviorTable[Math.floor(getKeyPinMidDegrees() / 90)][1];
-            }
-        }
-
-        function upKeyPress(isPressed) {
-            if (isPressed) {
-                keyPinCenterX += upKeyBehaviorTable[Math.floor(getKeyPinMidDegrees() / 90)][0];
-                keyPinCenterY += upKeyBehaviorTable[Math.floor(getKeyPinMidDegrees() / 90)][1];
-            }
+            requestAnimationFrame(draw);
         }
 
         function keyDownHandler(e) {
             if (e.key == "ArrowRight") {
-                rightKeyPress(true);
+                rightKeyDown = true;
             }
             else if (e.key == "ArrowLeft") {
-                leftKeyPress(true);
+                leftKeyDown = true;
             }
             else if (e.key == "ArrowUp") {
-                upKeyPress(true);
+                upKeyDown = true;
             }
             else if (e.key == "ArrowDown") {
-                downKeyPress(true);
+                downKeyDown = true;
             }
         }
 
         function keyUpHandler(e) {
             if (e.key == "ArrowRight") {
-                rightKeyPress(false);
+                rightKeyDown = false;
             }
             else if (e.key == "ArrowLeft") {
-                leftKeyPress(false);
+                leftKeyDown = false;
             }
             else if (e.key == "ArrowUp") {
-                upKeyPress(false);
+                upKeyDown = false;
             }
             else if (e.key == "ArrowDown") {
-                downKeyPress(false);
+                downKeyDown = false;
             }
         }
 
         document.addEventListener("keydown", keyDownHandler);
         document.addEventListener("keyup", keyUpHandler);
+        document.addEventListener("mousemove", mouseMoveHandler);
+        document.addEventListener("click", mouseClickHandler);
         
-        setInterval(draw, 10);
+        draw();
     </script>
 </html>
