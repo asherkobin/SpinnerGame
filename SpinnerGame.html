@@ -5,16 +5,12 @@
         <title>Sandbox</title>
     </head>
     <script>
+        var app_handleInput = null;
         window.addEventListener("load", (e) => { init(); });
         
         function init() {
-            const output = document.getElementById("output");
-            output.innerText = "Loaded OK";
-
             const button = document.getElementById("button");
-            const debug_button = document.getElementById("debug_button");
             button.addEventListener("click", (e) => { connectToController(); });
-            debug_button.addEventListener("click", (e) => { debug_button_click(); });
         }
 
         function connectToController() {
@@ -43,7 +39,7 @@
                         })
                         .then(() => {
                             characteristic.addEventListener("characteristicvaluechanged", change_handler)
-                            output.innerText = "Listening..."
+                            console.log("Subscribed via BLE");
                         })
                 })
                 .catch(e => { output.innerText = e; });
@@ -90,7 +86,7 @@
             }
 
             if (button_state_changed) {
-                handleInput(button_state);
+                app_handleInput(button_state);
             }
         }
     </script>
@@ -101,11 +97,11 @@
             padding: 15px 32px;
             font-size: 16px;
             border: none;
-            border-radius: 20px;
             cursor: pointer;
             text-align: center;
             display: inline-block;
             transition: background-color 0.3s ease;
+            display: none;
         }
         .button:hover {
             background-color: #606060; 
@@ -113,22 +109,17 @@
         .button:active {
             background-color: #808080;
         }
-        .output {
-            border: 2px solid black;
-            margin-top: 5px;
-            margin-bottom: 5px;
-            display: none;
-        }
         canvas {
             display: block;
             border: 1px solid black;
         }
+        body {
+            background-color: black;
+        }
     </style>
     <body>
-        <button id="button" class="button">Connect</button>
-        <div id="output" class="output">YOU SHOULD NOT BE SEEING THIS!</div>
+        <button id="button" class="button">Connect to Controller</button>
         <canvas id="canvas" width="350" height="640"></canvas>
-        <button id="debug_button" class="button" style="display: none;">Debug</button> 
     </body>
     <script>
         function drawLockFace(c, li, s) {
@@ -367,7 +358,7 @@
             
         }
 
-        function drawButton(c, li, s) {
+        function drawButtonx(c, li, s) {
             if (s.tumblerSpinning) {
                 li.buttonInfo.fillColor = li.buttonInfo.stopFillColor;
                 li.buttonInfo.text = "STOP";
@@ -377,31 +368,134 @@
                 li.buttonInfo.text = "START";
             }
             
-            c.fillStyle = li.buttonInfo.fillColor;
-            c.fillRect(li.buttonInfo.x, li.buttonInfo.y, li.buttonInfo.width, li.buttonInfo.height);
-
             if (li.buttonInfo.drawBorder) {
                 c.lineWidth = 1;
                 c.strokeStyle = li.buttonInfo.borderColor;
                 c.strokeRect(li.buttonInfo.x, li.buttonInfo.y, li.buttonInfo.width, li.buttonInfo.height);
             }
 
-            c.fillStyle = li.buttonInfo.fontColor;
+            const buttonGradient = c.createLinearGradient(0, 0, li.buttonInfo.width, li.buttonInfo.height);
+            
+            buttonGradient.addColorStop(0, "#c9982f");
+            buttonGradient.addColorStop(1, "#7a5c1a");
+
+            c.save();
+            c.translate(li.buttonInfo.x, li.buttonInfo.y);
+            c.fillStyle = buttonGradient;
+            c.fillRect(0, 0, li.buttonInfo.width, li.buttonInfo.height);
+            
             c.font = "16px Arial";
             c.textAlign = "center";
             c.textBaseline = "middle";
-            c.fillText(li.buttonInfo.text, 1 + li.buttonInfo.x + li.buttonInfo.width / 2, 2 + li.buttonInfo.y + li.buttonInfo.height / 2);
-            c.closePath();
+            c.fillStyle = "black";
+            c.fillText(li.buttonInfo.text, 1 + li.buttonInfo.width / 2, 2 + li.buttonInfo.height / 2);
+            c.restore();
         }
 
         function drawBackground(c, li, s) {
-            const bgGradient = c.createRadialGradient(li.x, li.y, 0, li.x, li.y, li.w);
-
-            bgGradient.addColorStop(0, "#1a1a1a");
-            bgGradient.addColorStop(1, "#050505");
-
-            c.fillStyle = bgGradient;
+            let g = c.createLinearGradient(0, 0, 0, li.h);
+            
+            g.addColorStop(0, "#5a3b23");
+            g.addColorStop(0.5, "#4a2f1d");
+            g.addColorStop(1, "#3a2416");
+            c.fillStyle = g;
             c.fillRect(0, 0, li.w, li.h);
+
+            // woodgrain
+
+            for (let i = 0; i < li.w; i += 10) {
+                c.beginPath();
+                c.moveTo(i + Math.sin(i * 0.02) * 6, 0);
+                c.lineTo(i + Math.sin(i * 0.02) * 6, li.h);
+                c.strokeStyle = "rgba(0,0,0,0.15)";
+                c.lineWidth = 1;
+                c.stroke();
+            }
+
+            for (let i = 0; i < li.w; i += 25) {
+                c.beginPath();
+                c.moveTo(i + Math.sin(i * 0.03) * 3, 0);
+                c.lineTo(i + Math.sin(i * 0.03) * 3, li.h);
+                c.strokeStyle = "rgba(0,0,0,0.10)";
+                c.lineWidth = 2;
+                c.stroke();
+            }
+
+            for (let i = 0; i < li.w; i += 60) {
+                c.beginPath();
+                c.moveTo(i + Math.sin(i * 0.01) * 10, 0);
+                c.lineTo(i + Math.sin(i * 0.01) * 10, li.h);
+                c.strokeStyle = "rgba(0,0,0,0.18)";
+                c.lineWidth = 2;
+                c.stroke();
+            }
+
+            // darkening around spinner
+
+            g = c.createRadialGradient(li.x, li.y, li.r * 0.5, li.x, li.y, li.r * 2.2);
+
+            g.addColorStop(0, "rgba(0,0,0,0.15)");
+            g.addColorStop(1, "rgba(0,0,0,0)");
+
+            c.fillStyle = g;
+            c.fillRect(0, 0, li.w, li.h);
+
+            // shadow below spinner
+
+            g = c.createRadialGradient(li.x, li.y + li.r * 0.5, li.r * 0.2, li.x, li.y + li.r * 0.5, li.r * 2.5);
+
+            g.addColorStop(0, "rgba(0,0,0,0.15)");
+            g.addColorStop(0.5, "rgba(0,0,0,0.3)");
+            g.addColorStop(1, "rgba(0,0,0,0)");
+            c.fillStyle = g;
+            c.fillRect(0, 0, li.w, li.h);
+        }
+
+        function drawButtonPanel(c, l, s, g) {
+            const panelLeft = l.bpx;
+            const panelTop = l.bpy;
+            const panelWidth = l.bpw;
+            const panelHeight = l.bph;
+            let buttonLeft = 0
+
+            c.save();
+            c.translate(panelLeft, panelTop);
+
+            for (i = 0; i < l.buttonInfo.length; i++) {
+                const g = c.createLinearGradient(0, 0, 0, l.bh);
+                
+                l.buttonInfo[i].x = buttonLeft + 8
+                l.buttonInfo[i].y = 5
+
+                if (l.buttonInfo[i].s == "hover") {
+                    g.addColorStop(0, "#fff1b3");
+                    g.addColorStop(0.25, "#f2d27a");
+                    g.addColorStop(0.6, "#d6a93a");
+                    g.addColorStop(1, "#a37a24");
+                }
+                else if (l.buttonInfo[i].s == "pressed") {
+                    g.addColorStop(0, "#a37a24");
+                    g.addColorStop(0.4, "#c99a2e");
+                    g.addColorStop(1, "#f2d27a");
+                }
+                else {
+                    g.addColorStop(0, "#c9982f");
+                    g.addColorStop(1, "#7a5c1a");
+                }
+
+                c.fillStyle = g;
+                c.fillRect(l.buttonInfo[i].x, l.buttonInfo[i].y, l.bw, l.bh);
+                
+                c.font = "14px Arial";
+                c.textAlign = "center";
+                c.textBaseline = "middle";
+                c.fillStyle = "black";
+                c.fillText(l.buttonInfo[i].text, 9 + buttonLeft + l.bw / 2, 4 + 1 + l.bh / 2);
+                
+                buttonLeft += l.bw + 9;
+            }
+            
+            c.restore();
         }
 
         function startGame(htmlDoc) {
@@ -414,21 +508,22 @@
                 y: canvas.height / 2,
                 r: 75,
                 t: 60,
-                s: 10,                    // space between tumbler and key pin
+                s: 10,                   // space between tumbler and key pin
                 pt: 20,                  // key pin thinkness
                 pw: 25 * Math.PI / 180,  // key pin width
                 pp: 1 * Math.PI / 180,   // key pin padding
-                buttonInfo: {
-                    x: canvas.width / 2 - 75 / 2,
-                    y: canvas.height / 2 - 75 / 2 + 250,
-                    width: 75,
-                    height: 75,
-                    drawBorder: false,
-                    stopFillColor: "darkred",
-                    startFillColor: "darkgreen",
-                    fontColor: "lightgray",
-                    borderColor: "black"
-                }
+                bw: 75,
+                bh: 75,
+                bpx: 3,
+                bpy: canvas.height - 90,
+                bpw: canvas.width - 20,
+                bph: 85,
+                ab: null,
+                buttonInfo: [
+                    { text: "CONNECT", x: 0, y: 0, s: "normal" },
+                    { text: "START",   x: 0, y: 0, s: "normal" },
+                    { text: "CONFIG",  x: 0, y: 0, s: "normal" },
+                    { text: "STATS",   x: 0, y: 0, s: "normal" } ]
             };
             const gameState = {
                 tumblerAngle: 0,
@@ -475,30 +570,86 @@
                     }
                 },
                 mouseMove: (e) => {
-                    const canvasRect = canvas.getBoundingClientRect();
-                    const mouseX = e.clientX - canvasRect.left;
-                    const mouseY = e.clientY - canvasRect.top;
+                    const buttonInfo = eventHandlers._buttonFromHtmlEvent(e);
 
-                    layoutInfo.buttonInfo.drawBorder = eventHandlers.isPointInButton(mouseX, mouseY);
+                    if (buttonInfo) {
+                        if (buttonInfo.s == "normal") {
+                            buttonInfo.s = "hover";
+                        }
+                    }
+                    else {
+                        layoutInfo.buttonInfo.forEach(b => {
+                            b.s = "normal";
+                        });
+                    }
+                },
+                mouseDown: (e) => {
+                    const buttonInfo = eventHandlers._buttonFromHtmlEvent(e);
+
+                    if (buttonInfo) {
+                        buttonInfo.s = "pressed";
+                    }
+                    else {
+                        layoutInfo.buttonInfo.forEach(b => {
+                            b.s = "normal";
+                        });
+                    }
+                },
+                mouseUp: (e) => {
+                    const buttonInfo = eventHandlers._buttonFromHtmlEvent(e);
+
+                    if (buttonInfo) {
+                        buttonInfo.s = "hover";
+                    }
+                    else {
+                        layoutInfo.buttonInfo.forEach(b => {
+                            b.s = "normal";
+                        });
+                    }
                 },
                 mouseClick: (e) => {
-                    const canvasRect = canvas.getBoundingClientRect();
-                    const mouseX = e.clientX - canvasRect.left;
-                    const mouseY = e.clientY - canvasRect.top;
+                    const buttonInfo = eventHandlers._buttonFromHtmlEvent(e);
 
-                    if (eventHandlers.isPointInButton(mouseX, mouseY)) {
+                    if (buttonInfo != undefined) {
                         gameState.tumblerSpinning = !gameState.tumblerSpinning;
                     }
                 },
-                isPointInButton: (x, y) => {
-                    return x >= layoutInfo.buttonInfo.x && x <= layoutInfo.buttonInfo.x + layoutInfo.buttonInfo.width &&
-                        y >= layoutInfo.buttonInfo.y && y <= layoutInfo.buttonInfo.y + layoutInfo.buttonInfo.height; 
-                }
+                _buttonFromHtmlEvent: (e) => {
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const x = e.clientX - canvasRect.left;
+                    const y = e.clientY - canvasRect.top;
+                    foundButton = null;
+                    layoutInfo.buttonInfo.forEach(b => {
+                        const bx = layoutInfo.bpx + b.x;
+                        const by = layoutInfo.bpy + b.y;
+                        const bw = layoutInfo.bw;
+                        const bh = layoutInfo.bh;
+                        const pointInButton = x >= bx && x <= bx + bw && y >= by && y <= by + bh;
+
+                        if (pointInButton) {
+                            foundButton = b;
+                            return;
+                        }
+                    });
+                    return foundButton;
+                },
             };
+
+            app_handleInput = (button_state) => {
+                if (button_state.center) {
+                    gameState.tumblerSpinning = !gameState.tumblerSpinning;
+                }
+
+                gameState.leftKeyDown = button_state.left_plus;
+                gameState.rightKeyDown = button_state.left_minus;
+                gameState.upKeyDown = button_state.left_stop;
+            }
 
             htmlDoc.addEventListener("keydown", eventHandlers.keyDown);
             htmlDoc.addEventListener("keyup", eventHandlers.keyUp);
             htmlDoc.addEventListener("mousemove", eventHandlers.mouseMove);
+            htmlDoc.addEventListener("mousedown", eventHandlers.mouseDown);
+            htmlDoc.addEventListener("mouseup", eventHandlers.mouseUp);
             htmlDoc.addEventListener("click", eventHandlers.mouseClick);
 
             const spinTumbler = (timeStamp) => {
@@ -517,24 +668,13 @@
             const drawFrame = () => {
                 drawBackground(canvasContext, layoutInfo, gameState);
                 drawLockFace(canvasContext, layoutInfo, gameState);
-                
                 drawTumbler(canvasContext, layoutInfo, gameState);
                 drawSpacingDisc(canvasContext, layoutInfo, gameState);
                 drawKeyPin(canvasContext, layoutInfo, gameState, gameConfig);
-                drawButton(canvasContext, layoutInfo, gameState);
+                drawButtonPanel(canvasContext, layoutInfo, gameState, gameConfig);
             }
 
             spinTumbler();
-        }
-
-        function handleInput(button_state) {
-            if (button_state.center) {
-                handleButtonClick();
-            }
-
-            leftKeyDown = button_state.left_plus;
-            rightKeyDown = button_state.left_minus;
-            upKeyDown = button_state.left_stop;
         }
 
         startGame(document);
