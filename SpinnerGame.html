@@ -234,108 +234,137 @@
             c.stroke();
         }
 
+        function drawSpacingDisc(c, li, s) {
+            const startAngle = s.tumblerAngle + li.pw / 2 - li.pp;
+            const endAngle = startAngle + (2 * Math.PI - li.pw - 2 * li.pp);
+            const outerRadius = li.r + li.t - li.pt - 10;
+            const innerRadius = li.r;
+
+            c.beginPath();
+            c.arc(li.x, li.y, outerRadius, 0, Math.PI * 2, false);
+            c.arc(li.x, li.y, innerRadius, 0, Math.PI * 2, true);
+            c.closePath();
+            
+            const tumblerGradient = c.createRadialGradient(li.x, li.y, li.r, li.x, li.y, li.r + li.t);
+            
+            tumblerGradient.addColorStop(0, "#c9982f");
+            tumblerGradient.addColorStop(1, "#7a5c1a");
+
+            c.fillStyle = tumblerGradient;
+            c.fill();
+
+            c.beginPath();
+            c.arc(li.x, li.y, outerRadius, endAngle, startAngle);
+            c.lineWidth = 2;
+            c.strokeStyle = "#5f4714";
+            c.stroke();
+        }
+
         function drawTumbler(c, li, s) {
             const startAngle = s.tumblerAngle + li.pw / 2 - li.pp;
             const endAngle = startAngle + (2 * Math.PI - li.pw - 2 * li.pp);
+            const outerRadius = li.r + li.t
+            const innerRadius = li.r;
 
             c.beginPath();
-            c.arc(li.x, li.y, li.r + li.t, startAngle, endAngle, false);
-            c.arc(li.x, li.y, li.r, endAngle, startAngle, true);
+            c.arc(li.x, li.y, outerRadius, startAngle, endAngle, false);
+            c.arc(li.x, li.y, innerRadius, endAngle, startAngle, true);
             c.closePath();
             
             c.lineWidth = 2;
             c.strokeStyle = "#5f4714";
             c.stroke();
 
-            const tumblerGradient = c.createRadialGradient(0, 0, 0, 0, li.r, li.r + li.t);
+            const tumblerGradient = c.createRadialGradient(li.x, li.y, li.r, li.x, li.y, li.r + li.t);
             
-            tumblerGradient.addColorStop(0, "#f1c861");
-            tumblerGradient.addColorStop(0.7, "#c9982f");
+            tumblerGradient.addColorStop(0, "#c9982f");
             tumblerGradient.addColorStop(1, "#7a5c1a");
 
             c.fillStyle = tumblerGradient;
             c.fill();
            
             c.beginPath();
-            c.arc(li.x, li.y, li.r + li.t + 1, 0, Math.PI * 2);
+            c.arc(li.x, li.y, li.r + li.t + 1, startAngle, endAngle);
             c.lineWidth = 4;
             c.strokeStyle = "rgba(255,255,255,0.25)";
             c.stroke();
         }
-    </script>
-    <script>
-    
-        let keyPinCenterX = 0;//tumblerCenterX;
-        let keyPinCenterY = 0;//tumblerCenterY;
-        const keyPinThickness = 20;
-        const keyPinAngle = Math.PI / 180 * 25;
-        const keyPinPaddingAngle = Math.PI / 180;
-        let keyPinDegrees = 0;
 
-        let leftKeyDown = false;
-        let rightKeyDown = false;
-        let upKeyDown = false;
-        let downKeyDown = false;
-
-        function drawKeyPin(c, li, s) { 
-            let keyPinInnerRadius = tumblerInnerRadius + tumblerThickness + tumblerKeyPinSpacing;
-            let keyPinOuterRadius = keyPinInnerRadius + keyPinThickness;
+        function drawKeyPin(c, li, s, g) { 
+            let keyPinInnerRadius = li.r + li.t + li.s;
+            let keyPinOuterRadius = keyPinInnerRadius + li.pt + 3;
             let keyPinMiss = false;
 
-            if (upKeyDown) {
-                if (!keyPinInCut) {
-                    if (angleDistance(tumblerDegrees, keyPinDegrees) < matchTolerance) {
-                        keyPinInCut = true;
+            if (s.upKeyDown) {
+                if (!s.keyPinInCut) {
+                    let angleDistance = s.keyPinAngle - s.tumblerAngle;
+                    angleDistance = (angleDistance + Math.PI) % (Math.PI * 2);
+                    if (angleDistance < 0)
+                        angleDistance += Math.PI * 2;
+                    angleDistance = angleDistance - Math.PI;
+
+                    if (Math.abs(angleDistance) < g.matchTolerance) {
+                        s.keyPinInCut = true;
                     }
                     else {
                         keyPinMiss = true;
                     }
                 }
                 else {
-                    keyPinInCut = false;
+                    s.keyPinInCut = false;
                 }
 
-                upKeyDown = false;
+                s.upKeyDown = false;
             }
 
-            if (downKeyDown && keyPinInCut) {
-                keyPinInCut = false;
-                keyPinDegrees = tumblerDegrees
+            if (s.downKeyDown && s.keyPinInCut) {
+                s.keyPinInCut = false;
+                s.keyPinAngle = s.tumblerAngle;
             }
 
-            if (leftKeyDown) {
-                keyPinDegrees = normalizeDegrees(keyPinDegrees + 5);
+            if (s.leftKeyDown) {
+                s.keyPinAngle = s.keyPinAngle + 0.01 * Math.PI * 2;
             }
-            else if (rightKeyDown) {    
-                keyPinDegrees = normalizeDegrees(keyPinDegrees - 5);
+            else if (s.rightKeyDown) {    
+                s.keyPinAngle = s.keyPinAngle - 0.01 * Math.PI * 2;
             }
 
-            if (keyPinInCut) {
-                keyPinOuterRadius = tumblerInnerRadius + tumblerThickness;
-                keyPinInnerRadius = keyPinOuterRadius - keyPinThickness;
+            if (s.keyPinInCut) {
+                keyPinOuterRadius = li.r + li.t;
+                keyPinInnerRadius = keyPinOuterRadius - li.pt - 4;
                 
-                keyPinDegrees = tumblerDegrees;
+                s.keyPinAngle = s.tumblerAngle;
             }
-            
-            let startDegrees = normalizeDegrees(keyPinDegrees - keyPinWidthDegrees / 2 - keyPinPaddingDegrees);
-            let endDegrees = normalizeDegrees(startDegrees + keyPinWidthDegrees - 2 * keyPinPaddingDegrees);
 
             if (keyPinMiss) {
                 fillColor = "red";
             }
-            else if (keyPinInCut) {
+            else if (s.keyPinInCut) {
                 fillColor = "green";
             }
             else {
                 fillColor = "yellow";
             }
+
+            const keyPinGradient = c.createRadialGradient(li.x, li.y, li.r, li.x, li.y, keyPinOuterRadius);
+            
+            keyPinGradient.addColorStop(0, "#c9982f");
+            keyPinGradient.addColorStop(1, "#7a5c1a");
+
+            c.fillStyle = keyPinGradient;
+
+            let startAngle = s.keyPinAngle - li.pw / 2;
+            let endAngle = startAngle + li.pw - 4 * li.pp;
             
             c.beginPath();
-            c.arc(keyPinCenterX, keyPinCenterY, keyPinOuterRadius, degreesToRadians(startDegrees), degreesToRadians(endDegrees), false);
-            c.arc(keyPinCenterX, keyPinCenterY, keyPinInnerRadius, degreesToRadians(endDegrees), degreesToRadians(startDegrees), true);
-            c.fillStyle = fillColor;
+            c.arc(li.x, li.y, keyPinOuterRadius, startAngle, endAngle, false);
+            c.arc(li.x, li.y, keyPinInnerRadius, endAngle, startAngle, true);
             c.fill();
+            c.lineWidth = 4;
+            c.strokeStyle = "rgba(255,255,255,0.25)";
             c.closePath();
+            c.stroke();
+            
         }
 
         function drawButton(c, li, s) {
@@ -385,8 +414,10 @@
                 y: canvas.height / 2,
                 r: 75,
                 t: 60,
-                pw: keyPinAngle,
-                pp: keyPinPaddingAngle,
+                s: 10,                    // space between tumbler and key pin
+                pt: 20,                  // key pin thinkness
+                pw: 25 * Math.PI / 180,  // key pin width
+                pp: 1 * Math.PI / 180,   // key pin padding
                 buttonInfo: {
                     x: canvas.width / 2 - 75 / 2,
                     y: canvas.height / 2 - 75 / 2 + 250,
@@ -401,6 +432,7 @@
             };
             const gameState = {
                 tumblerAngle: 0,
+                keyPinAngle: 0,
                 tumblerSpinning: false,
                 keyPinInCut: false,
                 buttonSize: 60,
@@ -485,8 +517,10 @@
             const drawFrame = () => {
                 drawBackground(canvasContext, layoutInfo, gameState);
                 drawLockFace(canvasContext, layoutInfo, gameState);
+                
                 drawTumbler(canvasContext, layoutInfo, gameState);
-                //drawKeyPin(canvasContext);
+                drawSpacingDisc(canvasContext, layoutInfo, gameState);
+                drawKeyPin(canvasContext, layoutInfo, gameState, gameConfig);
                 drawButton(canvasContext, layoutInfo, gameState);
             }
 
