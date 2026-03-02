@@ -131,7 +131,7 @@
         <button id="debug_button" class="button" style="display: none;">Debug</button> 
     </body>
     <script>
-        function drawLockFace(c, li) {
+        function drawLockFace(c, li, s) {
             c.save();
             c.translate(li.x, li.y);
             
@@ -170,19 +170,27 @@
 
             // tick marks
             let tickCount = 12;
+
+            c.save();
+            c.rotate(s.tumblerAngle);
             
             for (let i = 0; i < tickCount; i++) {
-                let tickAngle = (i / tickCount) * Math.PI * 2;
+                let tickAngle = (i / tickCount) * 2 * Math.PI;
                 let innerRadius = li.r * 0.85;
                 let outerRadius = li.r * 0.95;
 
+                c.save();
+                c.rotate(tickAngle);
                 c.beginPath();
-                c.moveTo(Math.cos(tickAngle) * innerRadius, Math.sin(tickAngle) * innerRadius);
-                c.lineTo(Math.cos(tickAngle) * outerRadius, Math.sin(tickAngle) * outerRadius);
+                c.moveTo(0, innerRadius);
+                c.lineTo(0, outerRadius);
                 c.strokeStyle = "#6e5418";
                 c.lineWidth = li.r * 0.015;
                 c.stroke();
+                c.restore();
             }
+
+            c.restore();
 
             // keyway
             
@@ -226,206 +234,42 @@
             c.stroke();
         }
 
-        function drawTumbler(c, li) {
-            const innerRadius = li.r;
-            const outerRadius = li.r + li.t;
-
-            const startDegrees = normalizeDegrees(li.a + li.pw / 2 - li.pp);
-            const endDegrees = normalizeDegrees(startDegrees + 360 - li.pw - 2 * li.pp);
+        function drawTumbler(c, li, s) {
+            const startAngle = s.tumblerAngle + li.pw / 2 - li.pp;
+            const endAngle = startAngle + (2 * Math.PI - li.pw - 2 * li.pp);
 
             c.beginPath();
-            c.arc(
-                tumblerCenterX,
-                tumblerCenterY,
-                outerRadius,
-                degreesToRadians(startDegrees),
-                degreesToRadians(endDegrees),
-                false
-            );
-            c.arc(
-                tumblerCenterX,
-                tumblerCenterY,
-                innerRadius,
-                degreesToRadians(endDegrees),
-                degreesToRadians(startDegrees),
-                true
-            );
-
-            // === Steel Gradient (flat band, not spherical) ===
-            const steel = c.createLinearGradient(
-                0,
-                tumblerCenterY - outerRadius,
-                0,
-                tumblerCenterY + outerRadius
-            );
-
-            steel.addColorStop(0.0, "#3a3a3a");
-            steel.addColorStop(0.2, "#6f6f6f");
-            steel.addColorStop(0.5, "#b8b8b8");  // bright steel strip
-            steel.addColorStop(0.8, "#6f6f6f");
-            steel.addColorStop(1.0, "#2a2a2a");
-
-            c.fillStyle = steel;
-            c.fill();
+            c.arc(li.x, li.y, li.r + li.t, startAngle, endAngle, false);
+            c.arc(li.x, li.y, li.r, endAngle, startAngle, true);
             c.closePath();
-/*
-            // === Outer Rim Edge Highlight ===
-            c.beginPath();
-            c.arc(
-                tumblerCenterX,
-                tumblerCenterY,
-                outerRadius,
-                0,
-                Math.PI * 2
-            );
-            c.lineWidth = 4;
-            c.strokeStyle = "rgba(255,255,255,0.25)";
-            c.stroke();
-
-            // === Inner Shadow Rim ===
-            c.beginPath();
-            c.arc(
-                tumblerCenterX,
-                tumblerCenterY,
-                innerRadius,
-                0,
-                Math.PI * 2
-            );
-            c.lineWidth = 6;
-            c.strokeStyle = "rgba(0,0,0,0.6)";
-            c.stroke();*/
-        }
-        
-
-        function drawLockFaceByAI(ctx, cx, cy, r, rotation = 0) {
-            c.save();
-            c.translate(cx, cy);
-
-            // ---- OUTER HOUSING ----
-            let housingGradient = c.createRadialGradient(0, 0, r * 0.3, 0, 0, r);
-            housingGradient.addColorStop(0, "#f6d57a");  // light brass
-            housingGradient.addColorStop(0.5, "#d4a73b");
-            housingGradient.addColorStop(1, "#8c6b1f");  // dark brass edge
-
-            c.beginPath();
-            c.arc(0, 0, r, 0, Math.PI * 2);
-            c.fillStyle = housingGradient;
-            c.fill();
-
-            // subtle outer stroke
-            c.lineWidth = r * 0.04;
-            c.strokeStyle = "#6f5418";
-            c.stroke();
-
-            // ---- INNER ROTATING PLUG ----
-            let plugRadius = r * 0.72;
-
-            let plugGradient = c.createRadialGradient(0, 0, 0, 0, 0, plugRadius);
-            plugGradient.addColorStop(0, "#f1c861");
-            plugGradient.addColorStop(0.7, "#c9982f");
-            plugGradient.addColorStop(1, "#7a5c1a");
-
-            c.beginPath();
-            c.arc(0, 0, plugRadius, 0, Math.PI * 2);
-            c.fillStyle = plugGradient;
-            c.fill();
-
-            c.lineWidth = r * 0.02;
+            
+            c.lineWidth = 2;
             c.strokeStyle = "#5f4714";
             c.stroke();
 
-            // rotate plug contents
-            c.save();
-            c.rotate(rotation);
+            const tumblerGradient = c.createRadialGradient(0, 0, 0, 0, li.r, li.r + li.t);
+            
+            tumblerGradient.addColorStop(0, "#f1c861");
+            tumblerGradient.addColorStop(0.7, "#c9982f");
+            tumblerGradient.addColorStop(1, "#7a5c1a");
 
-            // ---- KEYWAY CUTOUT ----
-            let kwWidth = plugRadius * 0.28;
-            let kwHeight = plugRadius * 0.9;
-
-            c.beginPath();
-            c.moveTo(-kwWidtli.h * 0.4, -kwHeight * 0.4);
-            c.lineTo(kwWidtli.h * 0.4, -kwHeight * 0.4);
-            c.lineTo(kwWidtli.h * 0.4, 0);
-            c.lineTo(kwWidtli.h * 0.8, 0);
-            c.lineTo(kwWidtli.h * 0.8, kwHeight * 0.4);
-            c.lineTo(-kwWidtli.h * 0.8, kwHeight * 0.4);
-            c.lineTo(-kwWidtli.h * 0.8, 0);
-            c.lineTo(-kwWidtli.h * 0.4, 0);
-            c.closePath();
-
-            c.fillStyle = "#1a1a1a";
+            c.fillStyle = tumblerGradient;
             c.fill();
-
-            // subtle inner bevel on keyway
-            c.lineWidth = r * 0.01;
-            c.strokeStyle = "#333";
+           
+            c.beginPath();
+            c.arc(li.x, li.y, li.r + li.t + 1, 0, Math.PI * 2);
+            c.lineWidth = 4;
+            c.strokeStyle = "rgba(255,255,255,0.25)";
             c.stroke();
-
-            c.restore();
-
-            // ---- ENGRAVED TICK MARKS (subtle) ----
-            let tickCount = 12;
-            for (let i = 0; i < tickCount; i++) {
-                let angle = (i / tickCount) * Math.PI * 2;
-                let inner = r * 0.88;
-                let outer = r * 0.96;
-
-                c.beginPath();
-                c.moveTo(Math.cos(angle) * inner, Math.sin(angle) * inner);
-                c.lineTo(Math.cos(angle) * outer, Math.sin(angle) * outer);
-                c.strokeStyle = "#6e5418";
-                c.lineWidth = r * 0.015;
-                c.stroke();
-            }
-
-            // ---- OPTIONAL SCREWS (top/bottom) ----
-            let screwRadius = r * 0.07;
-            let screwY = r * 0.65;
-
-            for (let y of [-screwY, screwY]) {
-                c.beginPath();
-                c.arc(0, y, screwRadius, 0, Math.PI * 2);
-                c.fillStyle = "#b88a2a";
-                c.fill();
-                c.strokeStyle = "#6f5418";
-                c.lineWidth = r * 0.02;
-                c.stroke();
-            }
-
-            c.restore();
-    }
+        }
     </script>
     <script>
-        // == Spinning Lock Game ==
-        // The goal of the game is to set the key pin in the tumbler cut while
-        // the tumbler is spinning. The tumbler will spin at a constant speed,
-        // and the key pin will be controlled by the player. You can move the
-        // key pin clockwise and counterclockwise, but it will only fit in the
-        // cut when it's aligned with the cut on the tumbler. You can only
-        // insert the key pin when it's aligned with the cut, so you have to
-        // time it right as the tumbler spins.
-
-        
-        
-        let keyPinInCut = false;
-        let tumblerSpinning = false;
-        const msPerDegree = 10;
-        
-        const matchTolerance = 15;
-        const buttonSize = 60;
-
-        const tumblerCenterX = canvas.width / 2;
-        const tumblerCenterY = canvas.height / 2;
-        const tumblerInnerRadius = 75
-        const tumblerThickness = 60;
-        let tumblerDegrees = 0;
-        let tumblerKeyPinSpacing = 5;
-
-        let keyPinCenterX = tumblerCenterX;
-        let keyPinCenterY = tumblerCenterY;
+    
+        let keyPinCenterX = 0;//tumblerCenterX;
+        let keyPinCenterY = 0;//tumblerCenterY;
         const keyPinThickness = 20;
-        const keyPinWidthDegrees = 25;
-        const keyPinPaddingDegrees = 1;
+        const keyPinAngle = Math.PI / 180 * 25;
+        const keyPinPaddingAngle = Math.PI / 180;
         let keyPinDegrees = 0;
 
         let leftKeyDown = false;
@@ -433,19 +277,7 @@
         let upKeyDown = false;
         let downKeyDown = false;
 
-        function degreesToRadians(degrees) {
-            return degrees * Math.PI / 180;
-        }
-
-        function normalizeDegrees(degrees) {
-            return (degrees % 360 + 360) % 360;
-        }
-
-        function getTumblerCutDegrees() {
-            return 0;
-        }
-
-        function drawKeyPin() { 
+        function drawKeyPin(c, li, s) { 
             let keyPinInnerRadius = tumblerInnerRadius + tumblerThickness + tumblerKeyPinSpacing;
             let keyPinOuterRadius = keyPinInnerRadius + keyPinThickness;
             let keyPinMiss = false;
@@ -506,51 +338,34 @@
             c.closePath();
         }
 
-        function angleDistance(a, b) {
-            let diff = Math.abs(a - b) % 360;
-            return diff > 180 ? 360 - diff : diff;
-        }
-
-        const buttonInfo = {
-            x: tumblerCenterX - buttonSize / 2,
-            y: tumblerCenterY - buttonSize / 2 + 250,
-            width: buttonSize,
-            height: buttonSize,
-            drawBorder: false,
-            stopFillColor: "darkred",
-            startFillColor: "darkgreen",
-            fontColor: "lightgray",
-            borderColor: "black"
-        };
-
-        function drawButton() {
-            if (tumblerSpinning) {
-                buttonInfo.fillColor = buttonInfo.stopFillColor;
-                buttonInfo.text = "STOP";
+        function drawButton(c, li, s) {
+            if (s.tumblerSpinning) {
+                li.buttonInfo.fillColor = li.buttonInfo.stopFillColor;
+                li.buttonInfo.text = "STOP";
             }
             else {
-                buttonInfo.fillColor = buttonInfo.startFillColor;
-                buttonInfo.text = "START";
+                li.buttonInfo.fillColor = li.buttonInfo.startFillColor;
+                li.buttonInfo.text = "START";
             }
             
-            c.fillStyle = buttonInfo.fillColor;
-            c.fillRect(buttonInfo.x, buttonInfo.y, buttonInfo.width, buttonInfo.height);
+            c.fillStyle = li.buttonInfo.fillColor;
+            c.fillRect(li.buttonInfo.x, li.buttonInfo.y, li.buttonInfo.width, li.buttonInfo.height);
 
-            if (buttonInfo.drawBorder) {
+            if (li.buttonInfo.drawBorder) {
                 c.lineWidth = 1;
-                c.strokeStyle = buttonInfo.borderColor;
-                c.strokeRect(buttonInfo.x, buttonInfo.y, buttonInfo.width, buttonInfo.height);
+                c.strokeStyle = li.buttonInfo.borderColor;
+                c.strokeRect(li.buttonInfo.x, li.buttonInfo.y, li.buttonInfo.width, li.buttonInfo.height);
             }
 
-            c.fillStyle = buttonInfo.fontColor;
+            c.fillStyle = li.buttonInfo.fontColor;
             c.font = "16px Arial";
             c.textAlign = "center";
             c.textBaseline = "middle";
-            c.fillText(buttonInfo.text, 1 + buttonInfo.x + buttonInfo.width / 2, 2 + buttonInfo.y + buttonInfo.height / 2);
+            c.fillText(li.buttonInfo.text, 1 + li.buttonInfo.x + li.buttonInfo.width / 2, 2 + li.buttonInfo.y + li.buttonInfo.height / 2);
             c.closePath();
         }
 
-        function drawBackground(c, li) {
+        function drawBackground(c, li, s) {
             const bgGradient = c.createRadialGradient(li.x, li.y, 0, li.x, li.y, li.w);
 
             bgGradient.addColorStop(0, "#1a1a1a");
@@ -560,132 +375,107 @@
             c.fillRect(0, 0, li.w, li.h);
         }
 
-        function drawTickMarks() {
-            const innerRadius = tumblerInnerRadius - 8;
-            const outerRadius = innerRadius - 12;
-
-            c.save();
-            c.translate(tumblerCenterX, tumblerCenterY);
-            c.rotate(degreesToRadians(tumblerDegrees));
-
-            for (let deg = 0; deg < 360; deg += 20) {
-
-                const isMajor = false;//deg % 30 === 0;  // bigger tick every 30°
-                const tickLength = isMajor ? 16 : 8;
-                const lineWidth = isMajor ? 3 : 1;
-
-                c.save();
-                c.rotate(degreesToRadians(deg));
-
-                c.beginPath();
-                c.moveTo(0, -innerRadius);
-                c.lineTo(0, -innerRadius - tickLength);
-                c.strokeStyle = isMajor
-                    ? "rgba(255,255,255,0.6)"
-                    : "rgba(255,255,255,0.25)";
-                c.lineWidth = lineWidth;
-                c.stroke();
-
-                c.restore();
-            }
-
-            c.restore();
-        }
-
-        function drawShackle() {
-    const shackleWidth = 160;
-    const shackleHeight = 90;
-    const thickness = 26;
-
-    const centerX = tumblerCenterX;
-    const bottomY = tumblerCenterY - tumblerInnerRadius - tumblerThickness + 30;
-
-    c.save();
-    c.translate(centerX, bottomY);
-
-    // === Outer U shape ===
-    c.beginPath();
-    c.arc(0, -shackleHeight, shackleWidth / 2, Math.PI, 0);
-    c.lineTo(shackleWidth / 2, 0);
-    c.lineTo(shackleWidth / 2 - thickness, 0);
-    c.arc(0, -shackleHeight, shackleWidth / 2 - thickness, 0, Math.PI, true);
-    c.lineTo(-shackleWidth / 2 + thickness, 0);
-    c.lineTo(-shackleWidth / 2, 0);
-    c.closePath();
-
-    // === Steel gradient (vertical brushed look) ===
-    const steel = c.createLinearGradient(
-        0,
-        -shackleHeight - 50,
-        0,
-        50
-    );
-
-    steel.addColorStop(0.0, "#3a3a3a");
-    steel.addColorStop(0.3, "#9a9a9a");
-    steel.addColorStop(0.5, "#e0e0e0");
-    steel.addColorStop(0.7, "#9a9a9a");
-    steel.addColorStop(1.0, "#2a2a2a");
-
-    c.fillStyle = steel;
-    c.fill();
-
-    // === Outer edge highlight ===
-    c.lineWidth = 3;
-    c.strokeStyle = "rgba(255,255,255,0.25)";
-    c.stroke();
-
-    c.restore();
-}
-
-        function isPointInButton(x, y) {
-            return x >= buttonInfo.x && x <= buttonInfo.x + buttonInfo.width &&
-                y >= buttonInfo.y && y <= buttonInfo.y + buttonInfo.height; 
-        }
-    
-        function mouseMoveHandler(e) {
-            const canvasRect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - canvasRect.left;
-            const mouseY = e.clientY - canvasRect.top;
-
-            buttonInfo.drawBorder = isPointInButton(mouseX, mouseY)
-        }
-
-        function mouseClickHandler(e) {
-            const canvasRect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - canvasRect.left;
-            const mouseY = e.clientY - canvasRect.top;
-
-            if (isPointInButton(mouseX, mouseY)) {
-                handleButtonClick();
-            }
-        }
-
-        function handleButtonClick() {
-            tumblerSpinning = !tumblerSpinning;
-        }
-
-        function startGame() {
-            const canvasContext = document.getElementById("canvas").getContext("2d");
+        function startGame(htmlDoc) {
+            const canvas = htmlDoc.getElementById("canvas");
+            const canvasContext = canvas.getContext("2d");
             const layoutInfo = {
-                w: document.getElementById("canvas").width,
-                h: document.getElementById("canvas").height,
-                x: tumblerCenterX,
-                y: tumblerCenterY,
-                r: tumblerInnerRadius,
-                a: 0,
-                t: tumblerThickness,
-                pw: keyPinWidthDegrees,
-                pp: keyPinPaddingDegrees
+                w: canvas.width,
+                h: canvas.height,
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                r: 75,
+                t: 60,
+                pw: keyPinAngle,
+                pp: keyPinPaddingAngle,
+                buttonInfo: {
+                    x: canvas.width / 2 - 75 / 2,
+                    y: canvas.height / 2 - 75 / 2 + 250,
+                    width: 75,
+                    height: 75,
+                    drawBorder: false,
+                    stopFillColor: "darkred",
+                    startFillColor: "darkgreen",
+                    fontColor: "lightgray",
+                    borderColor: "black"
+                }
             };
-            let lastTime;
+            const gameState = {
+                tumblerAngle: 0,
+                tumblerSpinning: false,
+                keyPinInCut: false,
+                buttonSize: 60,
+                rightKeyDown: false,
+                leftKeyDown: false,
+                upKeyDown: false,
+                downKeyDown: false
+            };
+            const gameConfig = {
+                msPerRadian: 500,
+                matchTolerance: 15 * Math.PI / 180,
+            }
+            const eventHandlers = {
+                keyDown: (e) => {
+                    if (e.key == "ArrowRight") {
+                        gameState.rightKeyDown = true;
+                    }
+                    else if (e.key == "ArrowLeft") {
+                        gameState.leftKeyDown = true;
+                    }
+                    else if (e.key == "ArrowUp") {
+                        gameState.upKeyDown = true;
+                    }
+                    else if (e.key == "ArrowDown") {
+                        gameState.downKeyDown = true;
+                    }
+                },
+                keyUp: (e) => {
+                    if (e.key == "ArrowRight") {
+                        gameState.rightKeyDown = false;
+                    }
+                    else if (e.key == "ArrowLeft") {
+                        gameState.leftKeyDown = false;
+                    }
+                    else if (e.key == "ArrowUp") {
+                        gameState.upKeyDown = false;
+                    }
+                    else if (e.key == "ArrowDown") {
+                        gameState.downKeyDown = false;
+                    }
+                },
+                mouseMove: (e) => {
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const mouseX = e.clientX - canvasRect.left;
+                    const mouseY = e.clientY - canvasRect.top;
+
+                    layoutInfo.buttonInfo.drawBorder = eventHandlers.isPointInButton(mouseX, mouseY);
+                },
+                mouseClick: (e) => {
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const mouseX = e.clientX - canvasRect.left;
+                    const mouseY = e.clientY - canvasRect.top;
+
+                    if (eventHandlers.isPointInButton(mouseX, mouseY)) {
+                        gameState.tumblerSpinning = !gameState.tumblerSpinning;
+                    }
+                },
+                isPointInButton: (x, y) => {
+                    return x >= layoutInfo.buttonInfo.x && x <= layoutInfo.buttonInfo.x + layoutInfo.buttonInfo.width &&
+                        y >= layoutInfo.buttonInfo.y && y <= layoutInfo.buttonInfo.y + layoutInfo.buttonInfo.height; 
+                }
+            };
+
+            htmlDoc.addEventListener("keydown", eventHandlers.keyDown);
+            htmlDoc.addEventListener("keyup", eventHandlers.keyUp);
+            htmlDoc.addEventListener("mousemove", eventHandlers.mouseMove);
+            htmlDoc.addEventListener("click", eventHandlers.mouseClick);
 
             const spinTumbler = (timeStamp) => {
-                const deltaTime = timeStamp - lastTime;
-                lastTime = timeStamp;
+                const deltaTime = timeStamp - gameState.lastTime;
+                
+                gameState.lastTime = timeStamp;
 
-                if (tumblerSpinning) {
-                    tumblerDegrees = normalizeDegrees(tumblerDegrees + deltaTime / msPerDegree);
+                if (gameState.tumblerSpinning) {
+                    gameState.tumblerAngle = gameState.tumblerAngle + deltaTime / gameConfig.msPerRadian;
                 }
 
                 drawFrame();
@@ -693,11 +483,11 @@
             }
 
             const drawFrame = () => {
-                drawBackground(canvasContext, layoutInfo);
-                drawLockFace(canvasContext, layoutInfo);
-                drawTumbler(canvasContext, layoutInfo);
+                drawBackground(canvasContext, layoutInfo, gameState);
+                drawLockFace(canvasContext, layoutInfo, gameState);
+                drawTumbler(canvasContext, layoutInfo, gameState);
                 //drawKeyPin(canvasContext);
-                //drawButton(canvasContext);
+                drawButton(canvasContext, layoutInfo, gameState);
             }
 
             spinTumbler();
@@ -713,41 +503,6 @@
             upKeyDown = button_state.left_stop;
         }
 
-        function keyDownHandler(e) {
-            if (e.key == "ArrowRight") {
-                rightKeyDown = true;
-            }
-            else if (e.key == "ArrowLeft") {
-                leftKeyDown = true;
-            }
-            else if (e.key == "ArrowUp") {
-                upKeyDown = true;
-            }
-            else if (e.key == "ArrowDown") {
-                downKeyDown = true;
-            }
-        }
-
-        function keyUpHandler(e) {
-            if (e.key == "ArrowRight") {
-                rightKeyDown = false;
-            }
-            else if (e.key == "ArrowLeft") {
-                leftKeyDown = false;
-            }
-            else if (e.key == "ArrowUp") {
-                upKeyDown = false;
-            }
-            else if (e.key == "ArrowDown") {
-                downKeyDown = false;
-            }
-        }
-
-        document.addEventListener("keydown", keyDownHandler);
-        document.addEventListener("keyup", keyUpHandler);
-        document.addEventListener("mousemove", mouseMoveHandler);
-        document.addEventListener("click", mouseClickHandler);
-        
-        startGame();
+        startGame(document);
     </script>
 </html>
