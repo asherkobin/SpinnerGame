@@ -4,92 +4,6 @@
         <meta charset="utf-8"/>
         <title>Sandbox</title>
     </head>
-    <script>
-        var app_handleInput = null;
-        window.addEventListener("load", (e) => { init(); });
-        
-        function init() {
-            const button = document.getElementById("button");
-            button.addEventListener("click", (e) => { connectToController(); });
-        }
-
-        function connectToController() {
-            const service_uid = "00001623-1212-efde-1623-785feabcd123";
-            const characteristic_uid = "00001624-1212-efde-1623-785feabcd123";
-            const setup_data = new Uint8Array([10, 0, 0x41, 0, 0x04, 1, 0, 0, 0, 1]);
-            
-            // 10   => Size
-            // 0    => Hub 0
-            // 0x41 => Message Type - Port Input Format Setup (Single) [0x41]
-            // 1    => BOTH BUTTONS = 1 (LEFT ONLY = 0)
-            // 0x04 => REMOTE_BUTTONS_MODE_KEYSD = 4
-            // 1    => DELTA_INTERVAL = 1 (4 BYTES)
-            // 1    => ENABLE_NOTIFICATIONS
-            
-            navigator.bluetooth.requestDevice({
-                filters: [{ name: "Handset"}],
-                optionalServices: [service_uid] })
-                .then(device => device.gatt.connect())
-                .then(server => server.getPrimaryService(service_uid))
-                .then(service => service.getCharacteristic(characteristic_uid))
-                .then(characteristic => {
-                    characteristic.writeValueWithResponse(setup_data)
-                        .then(response => {
-                            characteristic.startNotifications();
-                        })
-                        .then(() => {
-                            characteristic.addEventListener("characteristicvaluechanged", change_handler)
-                            console.log("Subscribed via BLE");
-                        })
-                })
-                .catch(e => { output.innerText = e; });
-        }
-
-        var button_state = {
-            left_plus: false,
-            left_stop: false,
-            left_minus: false,
-            center: false,
-            right_plus: false,
-            right_stop: false,
-            right_minus: false
-        };
-
-        function change_handler(e) {
-            const data = e.target.value.buffer ? e.target.value : new DataView(e.target.value);
-            let button_state_changed = false;
-
-            if (data.getUint8(0) == 5) {
-                if (data.getUint8(2) == 0x08) { // LWP3_MSG_TYPE_HW_NET_CMDS
-                    button_state.center = data.getUint8(4) == 1;
-                    button_state_changed = true;
-                }
-            }
-            else if (data.getUint8(0) == 7) {
-                if (data.getUint8(2) == 0x45) { // LWP3_MSG_TYPE_PORT_VALUE
-                    if (data.getUint8(3) == 0) { // LEFT
-                        button_state.left_plus = data.getUint8(4) == 1;
-                        button_state.left_stop = data.getUint8(5) == 1;
-                        button_state.left_minus = data.getUint8(6) == 1;
-                        button_state_changed = true;
-                    }
-                    else if (data.getUint8(3) == 1) { // RIGHT
-                        button_state.right_plus = data.getUint8(4) == 1;
-                        button_state.right_stop = data.getUint8(5) == 1;
-                        button_state.right_minus = data.getUint8(6) == 1;
-                        button_state_changed = true;
-                    }
-                }
-            }
-            else {
-                console.log("Unhandled Event: " + data)
-            }
-
-            if (button_state_changed) {
-                app_handleInput(button_state);
-            }
-        }
-    </script>
     <style>
         .button {
             background-color: #404040;
@@ -539,7 +453,27 @@
             const gameConfig = {
                 msPerRadian: 500,
                 matchTolerance: 15 * Math.PI / 180,
-            }
+            };
+            const gameAction = (cmd) => {
+                switch (cmd) {
+                    case "CONNECT":
+                        connectToController();
+                        break;
+                    case "START":
+                        gameState.tumblerSpinning = !gameState.tumblerSpinning;
+                        break;
+                        
+                }
+            };
+            const bleButtonState = {
+                left_plus: false,
+                left_stop: false,
+                left_minus: false,
+                center: false,
+                right_plus: false,
+                right_stop: false,
+                right_minus: false
+            };
             const eventHandlers = {
                 keyDown: (e) => {
                     if (e.key == "ArrowRight") {
@@ -610,8 +544,8 @@
                 mouseClick: (e) => {
                     const buttonInfo = eventHandlers._buttonFromHtmlEvent(e);
 
-                    if (buttonInfo != undefined) {
-                        gameState.tumblerSpinning = !gameState.tumblerSpinning;
+                    if (buttonInfo) {
+                        gameAction(buttonInfo.text);
                     }
                 },
                 _buttonFromHtmlEvent: (e) => {
@@ -633,16 +567,80 @@
                     });
                     return foundButton;
                 },
-            };
+                bleValueChanged: (e) => { console.log("BLE");
+                    const data = e.target.value.buffer ? e.target.value : new DataView(e.target.value);
+                    let button_state_changed = false;
 
-            app_handleInput = (button_state) => {
-                if (button_state.center) {
-                    gameState.tumblerSpinning = !gameState.tumblerSpinning;
+                    if (data.getUint8(0) == 5) {
+                        if (data.getUint8(2) == 0x08) { // LWP3_MSG_TYPE_HW_NET_CMDS
+                            bleButtonState.center = data.getUint8(4) == 1;
+                            button_state_changed = true;
+                        }
+                    }
+                    else if (data.getUint8(0) == 7) {
+                        if (data.getUint8(2) == 0x45) { // LWP3_MSG_TYPE_PORT_VALUE
+                            if (data.getUint8(3) == 0) { // LEFT
+                                bleButtonState.left_plus = data.getUint8(4) == 1;
+                                bleButtonState.left_stop = data.getUint8(5) == 1;
+                                bleButtonState.left_minus = data.getUint8(6) == 1;
+                                button_state_changed = true;
+                            }
+                            else if (data.getUint8(3) == 1) { // RIGHT
+                                bleButtonState.right_plus = data.getUint8(4) == 1;
+                                bleButtonState.right_stop = data.getUint8(5) == 1;
+                                bleButtonState.right_minus = data.getUint8(6) == 1;
+                                button_state_changed = true;
+                            }
+                        }
+                    }
+                    else {
+                        console.log("Unhandled Controller Event: " + data)
+                    }
+
+                    if (button_state.center) {
+                        gameAction("START");
+                    }
+
+                    gameState.leftKeyDown = button_state.left_plus;
+                    gameState.rightKeyDown = button_state.left_minus;
+                    gameState.upKeyDown = button_state.left_stop;
                 }
+            }
 
-                gameState.leftKeyDown = button_state.left_plus;
-                gameState.rightKeyDown = button_state.left_minus;
-                gameState.upKeyDown = button_state.left_stop;
+            function xxx(e) {
+                console.log(e); 
+            }
+
+            function connectToController() {
+                const service_uid = "00001623-1212-efde-1623-785feabcd123";
+                const characteristic_uid = "00001624-1212-efde-1623-785feabcd123";
+                const setup_data = new Uint8Array([10, 0, 0x41, 0, 0x04, 1, 0, 0, 0, 1]);
+                
+                // 10   => Size
+                // 0    => Hub 0
+                // 0x41 => Message Type - Port Input Format Setup (Single) [0x41]
+                // 1    => BOTH BUTTONS = 1 (LEFT ONLY = 0)
+                // 0x04 => REMOTE_BUTTONS_MODE_KEYSD = 4
+                // 1    => DELTA_INTERVAL = 1 (4 BYTES)
+                // 1    => ENABLE_NOTIFICATIONS
+                
+                navigator.bluetooth.requestDevice({
+                    filters: [{ name: "Handset"}],
+                    optionalServices: [service_uid] })
+                    .then(device => device.gatt.connect())
+                    .then(server => server.getPrimaryService(service_uid))
+                    .then(service => service.getCharacteristic(characteristic_uid))
+                    .then(characteristic => {
+                        characteristic.writeValueWithResponse(setup_data)
+                            .then(response => {
+                                characteristic.startNotifications();
+                            })
+                            .then(() => {
+                                characteristic.addEventListener("characteristicValueChanged", xxx);//eventHandlers.bleValueChanged);
+                                console.log("Subscribed via BLE");
+                            })
+                    })
+                    .catch(e => { console.log(e); });
             }
 
             htmlDoc.addEventListener("keydown", eventHandlers.keyDown);
