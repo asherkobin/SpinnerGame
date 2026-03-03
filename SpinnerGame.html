@@ -272,40 +272,6 @@
             
         }
 
-        function drawButtonx(c, li, s) {
-            if (s.tumblerSpinning) {
-                li.buttonInfo.fillColor = li.buttonInfo.stopFillColor;
-                li.buttonInfo.text = "STOP";
-            }
-            else {
-                li.buttonInfo.fillColor = li.buttonInfo.startFillColor;
-                li.buttonInfo.text = "START";
-            }
-            
-            if (li.buttonInfo.drawBorder) {
-                c.lineWidth = 1;
-                c.strokeStyle = li.buttonInfo.borderColor;
-                c.strokeRect(li.buttonInfo.x, li.buttonInfo.y, li.buttonInfo.width, li.buttonInfo.height);
-            }
-
-            const buttonGradient = c.createLinearGradient(0, 0, li.buttonInfo.width, li.buttonInfo.height);
-            
-            buttonGradient.addColorStop(0, "#c9982f");
-            buttonGradient.addColorStop(1, "#7a5c1a");
-
-            c.save();
-            c.translate(li.buttonInfo.x, li.buttonInfo.y);
-            c.fillStyle = buttonGradient;
-            c.fillRect(0, 0, li.buttonInfo.width, li.buttonInfo.height);
-            
-            c.font = "16px Arial";
-            c.textAlign = "center";
-            c.textBaseline = "middle";
-            c.fillStyle = "black";
-            c.fillText(li.buttonInfo.text, 1 + li.buttonInfo.width / 2, 2 + li.buttonInfo.height / 2);
-            c.restore();
-        }
-
         function drawBackground(c, li, s) {
             let g = c.createLinearGradient(0, 0, 0, li.h);
             
@@ -365,51 +331,117 @@
             c.fillRect(0, 0, li.w, li.h);
         }
 
+        function drawTitlePanel(c, l, s, g) {
+            const panelLeft = l.tpx + 2;
+            const panelTop = l.tpy + 2;
+            const panelWidth = l.tpw + 8;
+            const panelHeight = l.tph;
+
+            const gr = c.createLinearGradient(0, 0, 0, l.tph);
+                
+            gr.addColorStop(0, "#c9982f");
+            gr.addColorStop(1, "#7a5c1a");
+
+            c.fillStyle = gr;
+            c.fillRect(panelLeft, panelTop, panelWidth, panelHeight);
+            c.font = "55px Filibuster NF";
+           // c.textAlign = "left";
+            //c.textBaseline = "top";
+            c.fillStyle = "rgba(0,0,0,0.6)";
+            c.fillText("Spinner Game", 11 + panelLeft, panelTop + 60);
+        }
+
         function drawButtonPanel(c, l, s, g) {
             const panelLeft = l.bpx;
             const panelTop = l.bpy;
             const panelWidth = l.bpw;
             const panelHeight = l.bph;
+            const numButtons = l.buttonInfo.length;
+            const buttonMargin = 10;
+            const buttonWidth = (l.bpw - 2 * buttonMargin) / numButtons;
             let buttonLeft = 0
+
+            l.bw = buttonWidth; // FIXME
 
             c.save();
             c.translate(panelLeft, panelTop);
 
-            for (i = 0; i < l.buttonInfo.length; i++) {
-                const g = c.createLinearGradient(0, 0, 0, l.bh);
+            l.buttonInfo.forEach(b => {
+                b.x = buttonLeft + buttonMargin;
+                b.y = 0;
+                b.w = buttonWidth;
+                b.h = l.bh;
                 
-                l.buttonInfo[i].x = buttonLeft + 8
-                l.buttonInfo[i].y = 5
+                const gr = c.createLinearGradient(0, 0, 0, b.h);
 
-                if (l.buttonInfo[i].s == "hover") {
-                    g.addColorStop(0, "#fff1b3");
-                    g.addColorStop(0.25, "#f2d27a");
-                    g.addColorStop(0.6, "#d6a93a");
-                    g.addColorStop(1, "#a37a24");
+                if (b.s == "hover") {
+                    gr.addColorStop(0, "#fff1b3");
+                    gr.addColorStop(0.25, "#f2d27a");
+                    gr.addColorStop(0.6, "#d6a93a");
+                    gr.addColorStop(1, "#a37a24");
                 }
-                else if (l.buttonInfo[i].s == "pressed") {
-                    g.addColorStop(0, "#a37a24");
-                    g.addColorStop(0.4, "#c99a2e");
-                    g.addColorStop(1, "#f2d27a");
+                else if (b.s == "pressed") {
+                    gr.addColorStop(0, "#a37a24");
+                    gr.addColorStop(0.4, "#c99a2e");
+                    gr.addColorStop(1, "#f2d27a");
                 }
                 else {
-                    g.addColorStop(0, "#c9982f");
-                    g.addColorStop(1, "#7a5c1a");
+                    gr.addColorStop(0, "#c9982f");
+                    gr.addColorStop(1, "#7a5c1a");
                 }
 
-                c.fillStyle = g;
-                c.fillRect(l.buttonInfo[i].x, l.buttonInfo[i].y, l.bw, l.bh);
+                c.fillStyle = gr;
+                c.fillRect(b.x, b.y, b.w, b.h);
+
+                c.save();
+                c.translate(b.x, b.y);
                 
-                c.font = "14px Arial";
-                c.textAlign = "center";
-                c.textBaseline = "middle";
-                c.fillStyle = "black";
-                c.fillText(l.buttonInfo[i].text, 9 + buttonLeft + l.bw / 2, 4 + 1 + l.bh / 2);
+                if (b.text == "...") {
+                    drawEllipsis(c, b.w);
+                }
+                else {
+                    drawFancyText(c, b.text, { x: b.x, y: b.y, w: b.w, h: b.h });
+                }
+
+                c.restore();
                 
-                buttonLeft += l.bw + 9;
-            }
+                buttonLeft += buttonWidth + 10;
+            });
             
             c.restore();
+        }
+
+        function drawEllipsis(c, w) {
+            c.font = "50px Filibuster NF";
+            const ellipsisWidth = c.measureText("...").width;
+            const ellipsisX = (w - ellipsisWidth) / 2;
+            c.textBaseline = "top";
+            c.fillStyle = "rgba(0,0,0,0.6)";
+            c.fillText("...", ellipsisX, 2);
+        }
+
+        function drawFancyText(c, t, r) {
+            const upperCase = t[0];
+            const lowerCase = t.substring(1);
+            const upperFont = "50px Filibuster NF";
+            const lowerFont = "25px Filibuster NF";
+
+            c.font = upperFont;
+            const tmUpper = c.measureText(upperCase);
+
+            c.font = lowerFont;
+            const tmLower = c.measureText(lowerCase);
+
+            const textWidth = tmUpper.width + tmLower.width;
+            const textX = (r.w - textWidth) / 2;
+            
+            c.font = upperFont;
+            c.textBaseline = "middle";
+            c.fillStyle = "rgba(0,0,0,0.6)";
+            c.fillText(upperCase, textX, r.h / 2 + 2);
+            c.font = lowerFont;
+            c.textBaseline = "top";
+            c.fillText(lowerCase, textX + tmUpper.width, r.h / 2 - 2);
         }
 
         function startGame(htmlDoc) {
@@ -426,18 +458,20 @@
                 pt: 20,                  // key pin thinkness
                 pw: 25 * Math.PI / 180,  // key pin width
                 pp: 1 * Math.PI / 180,   // key pin padding
-                bw: 75,
                 bh: 75,
-                bpx: 3,
-                bpy: canvas.height - 90,
+                bw: 150,
+                bpx: 0,
+                bpy: canvas.height - 85,
                 bpw: canvas.width - 20,
                 bph: 85,
-                ab: null,
+                tpx: 3,
+                tpy: 3,
+                tpw: canvas.width - 20,
+                tph: 85,
                 buttonInfo: [
-                    { text: "CONNECT", x: 0, y: 0, s: "normal" },
-                    { text: "START",   x: 0, y: 0, s: "normal" },
-                    { text: "CONFIG",  x: 0, y: 0, s: "normal" },
-                    { text: "STATS",   x: 0, y: 0, s: "normal" } ]
+                    { text: "Connect", s: "normal" },
+                    { text: "Start", s: "normal" },
+                    { text: "...",  s: "normal" } ]
             };
             const gameState = {
                 tumblerAngle: 0,
@@ -456,20 +490,17 @@
             };
             const gameAction = (cmd) => {
                 switch (cmd) {
-                    case "CONNECT":
+                    case "Connect":
                         connectToController();
                         break;
-                    case "START":
+                    case "Start":
                         gameState.tumblerSpinning = !gameState.tumblerSpinning;
                         break;
-                    case "CONFIG":
-                        console.log("CONFIG NYI");
-                        break;
-                    case "STATS":
-                        console.log("STATS NYI");
+                    case "...":
+                        console.log("... NYI");
                         break;
                     default:
-                        console.log("UNKNOWN ACTIION");
+                        console.log("UNKNOWN ACTIION: " + cmd);
                 }
             }
             const eventHandlers = {
@@ -664,6 +695,7 @@
 
             const drawFrame = () => {
                 drawBackground(canvasContext, layoutInfo, gameState);
+                drawTitlePanel(canvasContext, layoutInfo, gameState);
                 drawLockFace(canvasContext, layoutInfo, gameState);
                 drawTumbler(canvasContext, layoutInfo, gameState);
                 drawSpacingDisc(canvasContext, layoutInfo, gameState);
