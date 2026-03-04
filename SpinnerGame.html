@@ -134,7 +134,7 @@
             c.fillStyle = "#1a1a1a";
             c.fill();
 
-            c.lineWidth = c.r * 0.01;
+            c.lineWidth = li.r * 0.01;
             c.strokeStyle = "#333";
             c.stroke();
         }
@@ -332,23 +332,28 @@
         }
 
         function drawTitlePanel(c, l, s, g) {
-            const panelLeft = l.tpx + 2;
-            const panelTop = l.tpy + 2;
-            const panelWidth = l.tpw + 8;
-            const panelHeight = l.tph;
+            const titleText = "Spinner Game";
+            const textX = l.tpx;
+            const textY = l.tpy;
+            
+            c.save();
+            
+            c.font = "58px Filibuster NF";
+            c.textAlign = "left";
+            c.textBaseline = "top";
 
-            const gr = c.createLinearGradient(0, 0, 0, l.tph);
-                
-            gr.addColorStop(0, "#c9982f");
-            gr.addColorStop(1, "#7a5c1a");
+            // burned text
+            c.shadowColor = "rgba(0,0,0,0.55)";
+            c.shadowBlur = 16;
+            c.fillStyle = "rgba(0,0,0,0.50)";
+            c.fillText(titleText, textX, textY);
 
-            c.fillStyle = gr;
-            c.fillRect(panelLeft, panelTop, panelWidth, panelHeight);
-            c.font = "55px Filibuster NF";
-           // c.textAlign = "left";
-            //c.textBaseline = "top";
-            c.fillStyle = "rgba(0,0,0,0.6)";
-            c.fillText("Spinner Game", 11 + panelLeft, panelTop + 60);
+            // outline
+            c.lineWidth = 1;
+            c.strokeStyle = "rgba(0,0,0,1)";
+            c.strokeText(titleText, textX, textY);
+
+            c.restore();
         }
 
         function drawButtonPanel(c, l, s, g) {
@@ -358,7 +363,8 @@
             const panelHeight = l.bph;
             const numButtons = l.buttonInfo.length;
             const buttonMargin = 10;
-            const buttonWidth = (l.bpw - 2 * buttonMargin) / numButtons;
+            const ellipsisButtonWidth = 60;
+            const buttonWidth = (l.bpw - 2 * buttonMargin - 60) / (numButtons - 1);
             let buttonLeft = 0
 
             l.bw = buttonWidth; // FIXME
@@ -369,55 +375,83 @@
             l.buttonInfo.forEach(b => {
                 b.x = buttonLeft + buttonMargin;
                 b.y = 0;
-                b.w = buttonWidth;
+                b.w = b.text == "..." ? ellipsisButtonWidth : buttonWidth;
                 b.h = l.bh;
-                
+
                 const gr = c.createLinearGradient(0, 0, 0, b.h);
 
-                if (b.s == "hover") {
-                    gr.addColorStop(0, "#fff1b3");
-                    gr.addColorStop(0.25, "#f2d27a");
+                if (b.s == "pressed") {
+                    gr.addColorStop(1, "#f2d27a");
                     gr.addColorStop(0.6, "#d6a93a");
-                    gr.addColorStop(1, "#a37a24");
+                    gr.addColorStop(0, "#a37a24");
                 }
-                else if (b.s == "pressed") {
+                else {
                     gr.addColorStop(0, "#a37a24");
                     gr.addColorStop(0.4, "#c99a2e");
                     gr.addColorStop(1, "#f2d27a");
                 }
-                else {
-                    gr.addColorStop(0, "#c9982f");
-                    gr.addColorStop(1, "#7a5c1a");
-                }
+                
 
                 c.fillStyle = gr;
                 c.fillRect(b.x, b.y, b.w, b.h);
 
-                c.save();
-                c.translate(b.x, b.y);
-                
-                if (b.text == "...") {
-                    drawEllipsis(c, b.w);
+                if (b.s == "pressed") {
+                    c.beginPath();
+                    c.moveTo(b.x, b.y + 0.5);
+                    c.lineTo(b.x + b.w, b.y + 0.5);
+                    c.strokeStyle = "rgba(0,0,0,0.4)";
+                    c.lineWidth = 1;
+                    c.stroke();
+
+                    c.beginPath();
+                    c.moveTo(b.x, b.y + b.h - 0.5);
+                    c.lineTo(b.x + b.w, b.y + b.h - 0.5);
+                    c.strokeStyle = "rgba(255,255,255,0.4)";
+                    c.lineWidth = 1;
+                    c.stroke();
                 }
                 else {
-                    drawFancyText(c, b.text, { x: b.x, y: b.y, w: b.w, h: b.h });
+                    c.beginPath();
+                    c.moveTo(b.x, b.y + 0.5);
+                    c.lineTo(b.x + b.w, b.y + 0.5);
+                    c.strokeStyle = "rgba(255,255,255,0.4)";
+                    c.lineWidth = 1;
+                    c.stroke();
+
+                    c.beginPath();
+                    c.moveTo(b.x, b.y + b.h - 0.5);
+                    c.lineTo(b.x + b.w, b.y + b.h - 0.5);
+                    c.strokeStyle = "rgba(0,0,0,0.4)";
+                    c.lineWidth = 1;
+                    c.stroke();
+                }
+                
+
+                c.save();
+                c.translate(b.x, b.y);
+
+                if (b.text == "...") {
+                    drawEllipsis(c, { x: b.x, y: b.s == "pressed" ? b.y + 1 : b.y, w: b.w, h: b.h });
+                }
+                else {
+                    drawFancyText(c, b.text, { x: b.x, y: b.s == "pressed" ? b.y + 1 : b.y, w: b.w, h: b.h });
                 }
 
                 c.restore();
                 
-                buttonLeft += buttonWidth + 10;
+                buttonLeft += b.w + 10;
             });
             
             c.restore();
         }
 
-        function drawEllipsis(c, w) {
+        function drawEllipsis(c, r) {
             c.font = "50px Filibuster NF";
             const ellipsisWidth = c.measureText("...").width;
-            const ellipsisX = (w - ellipsisWidth) / 2;
+            const ellipsisX = (r.w - ellipsisWidth) / 2;
             c.textBaseline = "top";
             c.fillStyle = "rgba(0,0,0,0.6)";
-            c.fillText("...", ellipsisX, 2);
+            c.fillText("...", ellipsisX, r.y);
         }
 
         function drawFancyText(c, t, r) {
@@ -438,10 +472,10 @@
             c.font = upperFont;
             c.textBaseline = "middle";
             c.fillStyle = "rgba(0,0,0,0.6)";
-            c.fillText(upperCase, textX, r.h / 2 + 2);
+            c.fillText(upperCase, textX, r.y + (r.h / 2) + 2);
             c.font = lowerFont;
             c.textBaseline = "top";
-            c.fillText(lowerCase, textX + tmUpper.width, r.h / 2 - 2);
+            c.fillText(lowerCase, textX + tmUpper.width, r.y + (r.h / 2) - 2);
         }
 
         function startGame(htmlDoc) {
@@ -464,8 +498,8 @@
                 bpy: canvas.height - 85,
                 bpw: canvas.width - 20,
                 bph: 85,
-                tpx: 3,
-                tpy: 3,
+                tpx: 10,
+                tpy: 10,
                 tpw: canvas.width - 20,
                 tph: 85,
                 buttonInfo: [
@@ -482,7 +516,9 @@
                 rightKeyDown: false,
                 leftKeyDown: false,
                 upKeyDown: false,
-                downKeyDown: false
+                downKeyDown: false,
+                lastTime: 0,
+                needsRedraw: true
             };
             const gameConfig = {
                 msPerRadian: 500,
@@ -494,7 +530,12 @@
                         connectToController();
                         break;
                     case "Start":
-                        gameState.tumblerSpinning = !gameState.tumblerSpinning;
+                        gameState.tumblerSpinning = true;
+                        layoutInfo.buttonInfo[1].text = "Stop"; // FIXME
+                        break;
+                    case "Stop":
+                        gameState.tumblerSpinning = false;
+                        layoutInfo.buttonInfo[1].text = "Start"; // FIXME
                         break;
                     case "...":
                         console.log("... NYI");
@@ -533,42 +574,23 @@
                     }
                 },
                 mouseMove: (e) => {
-                    const buttonInfo = eventHandlers._buttonFromHtmlEvent(e);
-
-                    if (buttonInfo) {
-                        if (buttonInfo.s == "normal") {
-                            buttonInfo.s = "hover";
-                        }
-                    }
-                    else {
-                        layoutInfo.buttonInfo.forEach(b => {
-                            b.s = "normal";
-                        });
-                    }
                 },
                 mouseDown: (e) => {
                     const buttonInfo = eventHandlers._buttonFromHtmlEvent(e);
 
                     if (buttonInfo) {
                         buttonInfo.s = "pressed";
-                    }
-                    else {
-                        layoutInfo.buttonInfo.forEach(b => {
-                            b.s = "normal";
-                        });
+                        gameState.needsRedraw = true;
                     }
                 },
                 mouseUp: (e) => {
                     const buttonInfo = eventHandlers._buttonFromHtmlEvent(e);
 
                     if (buttonInfo) {
-                        buttonInfo.s = "hover";
+                        buttonInfo.s = "normal";
+                        gameState.needsRedraw = true;
                     }
-                    else {
-                        layoutInfo.buttonInfo.forEach(b => {
-                            b.s = "normal";
-                        });
-                    }
+                    
                 },
                 mouseClick: (e) => {
                     const buttonInfo = eventHandlers._buttonFromHtmlEvent(e);
@@ -585,7 +607,7 @@
                     layoutInfo.buttonInfo.forEach(b => {
                         const bx = layoutInfo.bpx + b.x;
                         const by = layoutInfo.bpy + b.y;
-                        const bw = layoutInfo.bw;
+                        const bw = b.w;
                         const bh = layoutInfo.bh;
                         const pointInButton = x >= bx && x <= bx + bw && y >= by && y <= by + bh;
 
@@ -680,30 +702,34 @@
             htmlDoc.addEventListener("mouseup", eventHandlers.mouseUp);
             htmlDoc.addEventListener("click", eventHandlers.mouseClick);
 
-            const spinTumbler = (timeStamp) => {
+            const animationLoop = (timeStamp) => {
                 const deltaTime = timeStamp - gameState.lastTime;
                 
                 gameState.lastTime = timeStamp;
 
                 if (gameState.tumblerSpinning) {
                     gameState.tumblerAngle = gameState.tumblerAngle + deltaTime / gameConfig.msPerRadian;
+                    gameState.needsRedraw = true;
                 }
 
                 drawFrame();
-                requestAnimationFrame(spinTumbler);
+                requestAnimationFrame(animationLoop);
             }
 
             const drawFrame = () => {
-                drawBackground(canvasContext, layoutInfo, gameState);
-                drawTitlePanel(canvasContext, layoutInfo, gameState);
-                drawLockFace(canvasContext, layoutInfo, gameState);
-                drawTumbler(canvasContext, layoutInfo, gameState);
-                drawSpacingDisc(canvasContext, layoutInfo, gameState);
-                drawKeyPin(canvasContext, layoutInfo, gameState, gameConfig);
-                drawButtonPanel(canvasContext, layoutInfo, gameState, gameConfig);
+                if (gameState.needsRedraw) {
+                    drawBackground(canvasContext, layoutInfo, gameState);
+                    drawTitlePanel(canvasContext, layoutInfo, gameState);
+                    drawLockFace(canvasContext, layoutInfo, gameState);
+                    drawTumbler(canvasContext, layoutInfo, gameState);
+                    drawSpacingDisc(canvasContext, layoutInfo, gameState);
+                    drawKeyPin(canvasContext, layoutInfo, gameState, gameConfig);
+                    drawButtonPanel(canvasContext, layoutInfo, gameState, gameConfig);
+                    gameState.needsRedraw = false;
+                }
             }
 
-            spinTumbler();
+            animationLoop(0);
         }
 
         startGame(document);
