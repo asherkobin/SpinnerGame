@@ -510,31 +510,61 @@
             const gameState = {
                 tumblerAngle: 0,
                 keyPinAngle: 0,
-                tumblerSpinning: false,
                 keyPinInCut: false,
-                buttonSize: 60,
                 rightKeyDown: false,
                 leftKeyDown: false,
                 upKeyDown: false,
                 downKeyDown: false,
                 lastTime: 0,
-                needsRedraw: true
+                needsRedraw: true,
+                tumblerTargetVelocity: 0,
+                tumblerVelocity: 0
             };
             const gameConfig = {
-                msPerRadian: 500,
-                matchTolerance: 15 * Math.PI / 180,
+                matchTolerance: (Math.PI / 180) * 15, // degrees
+                tumblerVelocity:  0.003,
+                tumblerAcceleration: 0.000002,
+                tumblerFriction: 0.94
             };
+            const animationLoop = (timeStamp) => {
+                const deltaTime = timeStamp - gameState.lastTime;
+                
+                gameState.lastTime = timeStamp;
+
+                // accelerate toward target velocity
+                if (gameState.tumblerVelocity < gameState.tumblerTargetVelocity) {
+                    // speed up
+                    gameState.tumblerVelocity += gameConfig.tumblerAcceleration * deltaTime;
+                }
+                else if (gameState.tumblerVelocity > gameState.tumblerTargetVelocity) {
+                    // slow down
+                    gameState.tumblerVelocity *= gameConfig.tumblerFriction;
+                }
+
+                if (gameState.tumblerVelocity > 0) {
+                    // stop when very slow
+                    if (gameState.tumblerVelocity < 0.00001) {
+                        gameState.tumblerVelocity = 0;
+                    }
+                    // update angle for drawing
+                    gameState.tumblerAngle += gameState.tumblerVelocity * deltaTime;
+                    gameState.needsRedraw = true;
+                }
+
+                drawFrame();
+                requestAnimationFrame(animationLoop);
+            }
             const gameAction = (cmd) => {
                 switch (cmd) {
                     case "Connect":
                         connectToController();
                         break;
                     case "Start":
-                        gameState.tumblerSpinning = true;
+                        gameState.tumblerTargetVelocity = gameConfig.tumblerVelocity;
                         layoutInfo.buttonInfo[1].text = "Stop"; // FIXME
                         break;
                     case "Stop":
-                        gameState.tumblerSpinning = false;
+                        gameState.tumblerTargetVelocity = 0;
                         layoutInfo.buttonInfo[1].text = "Start"; // FIXME
                         break;
                     case "...":
@@ -558,6 +588,8 @@
                     else if (e.key == "ArrowDown") {
                         gameState.downKeyDown = true;
                     }
+
+                    gameState.needsRedraw = true;
                 },
                 keyUp: (e) => {
                     if (e.key == "ArrowRight") {
@@ -701,20 +733,6 @@
             htmlDoc.addEventListener("mousedown", eventHandlers.mouseDown);
             htmlDoc.addEventListener("mouseup", eventHandlers.mouseUp);
             htmlDoc.addEventListener("click", eventHandlers.mouseClick);
-
-            const animationLoop = (timeStamp) => {
-                const deltaTime = timeStamp - gameState.lastTime;
-                
-                gameState.lastTime = timeStamp;
-
-                if (gameState.tumblerSpinning) {
-                    gameState.tumblerAngle = gameState.tumblerAngle + deltaTime / gameConfig.msPerRadian;
-                    gameState.needsRedraw = true;
-                }
-
-                drawFrame();
-                requestAnimationFrame(animationLoop);
-            }
 
             const drawFrame = () => {
                 if (gameState.needsRedraw) {
