@@ -139,60 +139,34 @@
             c.stroke();
         }
 
-        function drawSpacingDisc(c, li, s) {
-            const startAngle = s.tumblerAngle + li.pw / 2 - li.pp;
-            const endAngle = startAngle + (2 * Math.PI - li.pw - 2 * li.pp);
-            const outerRadius = li.r + li.t - li.pt - 10;
-            const innerRadius = li.r;
-
-            c.beginPath();
-            c.arc(li.x, li.y, outerRadius, 0, Math.PI * 2, false);
-            c.arc(li.x, li.y, innerRadius, 0, Math.PI * 2, true);
-            c.closePath();
-            
-            const tumblerGradient = c.createRadialGradient(li.x, li.y, li.r, li.x, li.y, li.r + li.t);
-            
-            tumblerGradient.addColorStop(0, "#c9982f");
-            tumblerGradient.addColorStop(1, "#7a5c1a");
-
-            c.fillStyle = tumblerGradient;
-            c.fill();
-
-            c.beginPath();
-            c.arc(li.x, li.y, outerRadius, endAngle, startAngle);
-            c.lineWidth = 2;
-            c.strokeStyle = "#5f4714";
-            c.stroke();
-        }
-
         function drawTumbler(c, li, s) {
             const startAngle = s.tumblerAngle + li.pw / 2 - li.pp;
             const endAngle = startAngle + (2 * Math.PI - li.pw - 2 * li.pp);
             const outerRadius = li.r + li.t
-            const innerRadius = li.r;
-
-            c.beginPath();
-            c.arc(li.x, li.y, outerRadius, startAngle, endAngle, false);
-            c.arc(li.x, li.y, innerRadius, endAngle, startAngle, true);
-            c.closePath();
-            
-            c.lineWidth = 2;
-            c.strokeStyle = "#5f4714";
-            c.stroke();
-
+            const innerRadius = li.r + li.t - li.pt - 10;
             const tumblerGradient = c.createRadialGradient(li.x, li.y, li.r, li.x, li.y, li.r + li.t);
             
             tumblerGradient.addColorStop(0, "#c9982f");
             tumblerGradient.addColorStop(1, "#7a5c1a");
 
             c.fillStyle = tumblerGradient;
-            c.fill();
-           
+
             c.beginPath();
-            c.arc(li.x, li.y, li.r + li.t + 1, startAngle, endAngle);
-            c.lineWidth = 4;
+            c.moveTo(...pointOnCircle(li.x, li.y, outerRadius, startAngle));
+            c.lineTo(...pointOnCircle(li.x, li.y, innerRadius, startAngle));
+            c.arc(li.x, li.y, innerRadius, startAngle, endAngle, true);
+            c.lineTo(...pointOnCircle(li.x, li.y, outerRadius, endAngle));
+            c.arc(li.x, li.y, outerRadius, endAngle, startAngle, true);
+            
             c.strokeStyle = "rgba(255,255,255,0.25)";
+            c.fill();
+            
+            c.lineWidth = 4;
             c.stroke();
+        }
+
+        function pointOnCircle(x, y, r, a) {
+            return [x + r * Math.cos(a), y + r * Math.sin(a)];
         }
 
         function drawKeyPin(c, li, s, g) { 
@@ -738,9 +712,8 @@
                 if (gameState.needsRedraw) {
                     drawBackground(canvasContext, layoutInfo, gameState);
                     drawTitlePanel(canvasContext, layoutInfo, gameState);
-                    drawLockFace(canvasContext, layoutInfo, gameState);
                     drawTumbler(canvasContext, layoutInfo, gameState);
-                    drawSpacingDisc(canvasContext, layoutInfo, gameState);
+                    drawLockFace(canvasContext, layoutInfo, gameState);
                     drawKeyPin(canvasContext, layoutInfo, gameState, gameConfig);
                     drawButtonPanel(canvasContext, layoutInfo, gameState, gameConfig);
                     gameState.needsRedraw = false;
