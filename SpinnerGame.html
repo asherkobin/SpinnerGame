@@ -475,7 +475,7 @@
             c.translate(l.x, l.y);
             c.rotate(s.tumblerAngle);
 
-            s.spotInfo.forEach(p => {
+            l.spotInfo.forEach(p => {
                 c.beginPath();
                 c.arc(
                     Math.cos(p.a) * p.r,
@@ -495,23 +495,22 @@
             c.translate(l.x, l.y);
             c.rotate(s.tumblerAngle);
 
-            s.scratchInfo.forEach(s => {
+            l.scratchInfo.forEach(s => {
+                const g = c.createConicGradient(s.a, 0, 0);
+
+                g.addColorStop(0,                    "rgba(255,255,255,0.0)");
+                g.addColorStop(s.pa / (2 * Math.PI), "rgba(255,255,255,0.1)");
+
                 c.beginPath();
                 c.arc(
                     0,
                     0,
                     s.r,
                     s.a,
-                    (s.a + s.pa) * 1);
-                c.lineWidth = 2;
-
-                const g = c.createConicGradient(s.a, 0, 0);
-                
-                g.addColorStop(0, "rgba(255,255,255,.1)");
-                g.addColorStop(0.5, "rgba(255,255,255,0)");
-                g.addColorStop(1, "rgba(255,255,255,.1)");
+                    s.a + s.pa);
                 
                 c.strokeStyle = g;
+                c.lineWidth = 2;
                 c.stroke();
             });
 
@@ -547,7 +546,9 @@
                 buttonInfo: [
                     { text: "Connect", s: "normal" },
                     { text: "Start", s: "normal" },
-                    { text: "...",  s: "normal" } ]
+                    { text: "...",  s: "normal" } ],
+                spotInfo: [],
+                scratchInfo: []
             };
             const gameState = {
                 tumblerAngle: 0,
@@ -560,9 +561,7 @@
                 lastTime: 0,
                 needsRedraw: true,
                 tumblerTargetVelocity: 0,
-                tumblerVelocity: 0,
-                spotInfo: [],
-                scratchInfo: []
+                tumblerVelocity: 0
             };
             const gameConfig = {
                 matchTolerance: (Math.PI / 180) * 5, // 5 degrees
@@ -723,19 +722,19 @@
                     const r = layoutInfo.keyHoleRadius + Math.random() * (layoutInfo.tumblerRadius - layoutInfo.keyHoleRadius);
                     const a = Math.random() * Math.PI * 2;
                     const pr = 2 + Math.random() * 2;
-                    const pa = (Math.PI / 64) + Math.random() * 8 * (Math.PI / 64);
+                    const pa = (Math.PI / 64) + Math.random() * 16 * (Math.PI / 64);
                     const f = 0.01 + Math.random() * 0.05;
                     const o = {r:r,a:a,pr:pr,pa:pa,f:f};
                     return o;
                 };
                 
                 for (let i = 0; i < gameConfig.numSpots; i++) {
-                    gameState.spotInfo.push(createParticle());
+                    layoutInfo.spotInfo.push(createParticle());
                 }
 
                 // scratches
                 for (let i = 0; i < gameConfig.numScratches; i++) {
-                    gameState.scratchInfo.push(createParticle());
+                    layoutInfo.scratchInfo.push(createParticle());
                 }
             }
 
