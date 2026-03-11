@@ -147,8 +147,8 @@
         function drawTumbler(c, li, s) {
             const startAngle = s.tumblerAngle + li.pw / 2;
             const endAngle = startAngle + (2 * Math.PI - li.pw);
-            const innerRadius = li.dialRadius + li.cutWidth;
-            const outerRadius = li.tumblerRadius;
+            const innerRadius = li.tumblerRadius - li.pinWidth;
+            const outerRadius = li.tumblerRadius + 5;
             
             const tumblerGradient = c.createRadialGradient(li.x, li.y, innerRadius, li.x, li.y, outerRadius);
             tumblerGradient.addColorStop(0.00, "#c0912e");
@@ -176,7 +176,7 @@
 
         function drawKeyPin(c, li, s, g) { 
             let keyPinInnerRadius = li.tumblerRadius + li.tumblerSpacing;
-            let keyPinOuterRadius = keyPinInnerRadius + li.pinWidth + 1;
+            let keyPinOuterRadius = keyPinInnerRadius + li.pinWidth;
             let keyPinMiss = false;
 
             if (s.upKeyDown) {
@@ -216,8 +216,8 @@
             }
 
             if (s.keyPinInCut) {
-                keyPinInnerRadius = li.tumblerRadius - li.cutWidth + 6;
-                keyPinOuterRadius = li.tumblerRadius - 3;
+                keyPinInnerRadius = li.tumblerRadius - li.pinWidth + 6;
+                keyPinOuterRadius = li.tumblerRadius + 4;
                 
                 s.keyPinAngle = s.tumblerAngle;
                 s.needsRedraw = true;
@@ -469,6 +469,55 @@
             c.fillText(lowerCase, textX + tmUpper.width, r.y + (r.h / 2) - 2);
         }
 
+
+        function drawSpots(c, l, s) {
+            c.save();
+            c.translate(l.x, l.y);
+            c.rotate(s.tumblerAngle);
+
+            s.spotInfo.forEach(p => {
+                c.beginPath();
+                c.arc(
+                    Math.cos(p.a) * p.r,
+                    Math.sin(p.a) * p.r,
+                    p.pr,
+                    0,
+                    Math.PI * 2);
+                c.fillStyle = `rgba(0,0,0,${p.f})`;
+                c.fill();
+            });
+
+            c.restore();
+        }
+        
+        function drawScratches(c, l, s) {
+            c.save();
+            c.translate(l.x, l.y);
+            c.rotate(s.tumblerAngle);
+
+            s.scratchInfo.forEach(s => {
+                c.beginPath();
+                c.arc(
+                    0,
+                    0,
+                    s.r,
+                    s.a,
+                    (s.a + s.pa) * 1);
+                c.lineWidth = 2;
+
+                const g = c.createConicGradient(s.a, 0, 0);
+                
+                g.addColorStop(0, "rgba(255,255,255,.1)");
+                g.addColorStop(0.5, "rgba(255,255,255,0)");
+                g.addColorStop(1, "rgba(255,255,255,.1)");
+                
+                c.strokeStyle = g;
+                c.stroke();
+            });
+
+            c.restore();
+        }
+
         function startGame(htmlDoc) {
             const canvas = htmlDoc.getElementById("canvas");
             const canvasContext = canvas.getContext("2d");
@@ -477,7 +526,7 @@
                 h: canvas.height,
                 x: canvas.width / 2,
                 y: canvas.height / 2,
-                pw: 25 * Math.PI / 180,  // key pin width
+                pw: 30 * Math.PI / 180,  // key pin width
                 pp: 1 * Math.PI / 180,   // key pin padding
                 bh: 75,
                 bw: 150,
@@ -493,9 +542,8 @@
                 dialRadius: 75,
                 tumblerRadius: 135,
                 cutRadius: 100,
-                cutWidth: 30,
-                pinWidth: 20,
-                tumblerSpacing: 15, // space between tumbler and key pin
+                pinWidth: 30,
+                tumblerSpacing: 10, // space between tumbler and key pin
                 buttonInfo: [
                     { text: "Connect", s: "normal" },
                     { text: "Start", s: "normal" },
@@ -512,43 +560,24 @@
                 lastTime: 0,
                 needsRedraw: true,
                 tumblerTargetVelocity: 0,
-                tumblerVelocity: 0
+                tumblerVelocity: 0,
+                spotInfo: [],
+                scratchInfo: []
             };
             const gameConfig = {
-                matchTolerance: (Math.PI / 180) * 15, // degrees
+                matchTolerance: (Math.PI / 180) * 5, // 5 degrees
                 tumblerVelocity:  0.003,
                 tumblerAcceleration: 0.000002,
-                tumblerFriction: 0.94
+                tumblerFriction: 0.94,
+                numSpots: 10,
+                numScratches: 10
             };
-            const animationLoop = (timeStamp) => {
-                const deltaTime = timeStamp - gameState.lastTime;
-                
-                gameState.lastTime = timeStamp;
 
-                // accelerate toward target velocity
-                if (gameState.tumblerVelocity < gameState.tumblerTargetVelocity) {
-                    // speed up
-                    gameState.tumblerVelocity += gameConfig.tumblerAcceleration * deltaTime;
-                }
-                else if (gameState.tumblerVelocity > gameState.tumblerTargetVelocity) {
-                    // slow down
-                    gameState.tumblerVelocity *= gameConfig.tumblerFriction;
-                }
+            // properties above, methods below
 
-                if (gameState.tumblerVelocity > 0) {
-                    // stop when very slow
-                    if (gameState.tumblerVelocity < 0.00001) {
-                        gameState.tumblerVelocity = 0;
-                    }
-                    // update angle for drawing
-                    gameState.tumblerAngle += gameState.tumblerVelocity * deltaTime;
-                    gameState.needsRedraw = true;
-                }
+            
 
-                drawFrame();
-                requestAnimationFrame(animationLoop);
-            }
-            const gameAction = (cmd) => {
+            function gameAction(cmd) {
                 switch (cmd) {
                     case "Connect":
                         connectToController();
@@ -567,7 +596,7 @@
                     default:
                         console.log("UNKNOWN ACTIION: " + cmd);
                 }
-            }
+            };
             const eventHandlers = {
                 keyDown: (e) => {
                     if (e.key == "ArrowRight") {
@@ -689,6 +718,27 @@
                 }
             };
 
+            function createParticles() {
+                const createParticle = () => {
+                    const r = layoutInfo.keyHoleRadius + Math.random() * (layoutInfo.tumblerRadius - layoutInfo.keyHoleRadius);
+                    const a = Math.random() * Math.PI * 2;
+                    const pr = 2 + Math.random() * 2;
+                    const pa = (Math.PI / 64) + Math.random() * 8 * (Math.PI / 64);
+                    const f = 0.01 + Math.random() * 0.05;
+                    const o = {r:r,a:a,pr:pr,pa:pa,f:f};
+                    return o;
+                };
+                
+                for (let i = 0; i < gameConfig.numSpots; i++) {
+                    gameState.spotInfo.push(createParticle());
+                }
+
+                // scratches
+                for (let i = 0; i < gameConfig.numScratches; i++) {
+                    gameState.scratchInfo.push(createParticle());
+                }
+            }
+
             function connectToController() {
                 const service_uid = "00001623-1212-efde-1623-785feabcd123";
                 const characteristic_uid = "00001624-1212-efde-1623-785feabcd123";
@@ -721,26 +771,70 @@
                     .catch(e => { console.log(`(BLE) ${e}`); });
                 }
 
-            htmlDoc.addEventListener("keydown", eventHandlers.keyDown);
-            htmlDoc.addEventListener("keyup", eventHandlers.keyUp);
-            htmlDoc.addEventListener("mousemove", eventHandlers.mouseMove);
-            htmlDoc.addEventListener("mousedown", eventHandlers.mouseDown);
-            htmlDoc.addEventListener("mouseup", eventHandlers.mouseUp);
-            htmlDoc.addEventListener("click", eventHandlers.mouseClick);
+            function setupEventHandlers() {
+                htmlDoc.addEventListener("keydown", eventHandlers.keyDown);
+                htmlDoc.addEventListener("keyup", eventHandlers.keyUp);
+                htmlDoc.addEventListener("mousemove", eventHandlers.mouseMove);
+                htmlDoc.addEventListener("mousedown", eventHandlers.mouseDown);
+                htmlDoc.addEventListener("mouseup", eventHandlers.mouseUp);
+                htmlDoc.addEventListener("click", eventHandlers.mouseClick);
+            }
+
+            function animationLoop(timeStamp) {
+                const deltaTime = timeStamp - gameState.lastTime;
+                
+                gameState.lastTime = timeStamp;
+
+                // accelerate toward target velocity
+                if (gameState.tumblerVelocity < gameState.tumblerTargetVelocity) {
+                    // speed up
+                    gameState.tumblerVelocity += gameConfig.tumblerAcceleration * deltaTime;
+                }
+                else if (gameState.tumblerVelocity > gameState.tumblerTargetVelocity) {
+                    // slow down
+                    gameState.tumblerVelocity *= gameConfig.tumblerFriction;
+                }
+
+                if (gameState.tumblerVelocity > 0) {
+                    // stop when very slow
+                    if (gameState.tumblerVelocity < 0.00001) {
+                        gameState.tumblerVelocity = 0;
+                    }
+                    // update angle for drawing
+                    gameState.tumblerAngle += gameState.tumblerVelocity * deltaTime;
+                    gameState.needsRedraw = true;
+                }
+
+                drawFrame();
+                requestAnimationFrame(animationLoop);
+            };
 
             const drawFrame = () => {
                 if (gameState.needsRedraw) {
                     drawBackground(canvasContext, layoutInfo, gameState);
                     drawTitlePanel(canvasContext, layoutInfo, gameState);
                     drawTumbler(canvasContext, layoutInfo, gameState);
+                    drawScratches(canvasContext, layoutInfo, gameState);
+                    drawSpots(canvasContext, layoutInfo, gameState);
                     drawDial(canvasContext, layoutInfo, gameState);
                     drawKeyHole(canvasContext, layoutInfo, gameState);
                     drawKeyPin(canvasContext, layoutInfo, gameState, gameConfig);
                     drawButtonPanel(canvasContext, layoutInfo, gameState, gameConfig);
-                    gameState.needsRedraw = false;
+                    
+                    if (gameState.leftKeyDown || gameState.rightKeyDown) {
+                        // don't reset if something is happening
+                        gameState.needsRedraw = true;    
+                    }
+                    else {
+                        gameState.needsRedraw = false;
+                    }
                 }
             }
 
+            // game starts here
+
+            createParticles();
+            setupEventHandlers();
             animationLoop(0);
         }
 
