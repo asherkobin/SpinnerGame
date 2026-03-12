@@ -194,11 +194,6 @@
                         keyPinMiss = true;
                     }
                 }
-                else {
-                    s.keyPinInCut = false;
-                }
-
-                s.upKeyDown = false;
             }
 
             if (s.downKeyDown && s.keyPinInCut) {
@@ -223,26 +218,26 @@
                 s.needsRedraw = true;
             }
 
+            const keyPinGradient = c.createRadialGradient(li.x, li.y, keyPinInnerRadius, li.x, li.y, keyPinOuterRadius);
+
             if (keyPinMiss) {
-                fillColor = "red";
+                keyPinGradient.addColorStop(0.00, "#a13b2f");
             }
             else if (s.keyPinInCut) {
-                fillColor = "green";
+                keyPinGradient.addColorStop(0.00, "#c0912e");
+                keyPinGradient.addColorStop(0.50, "#c9982f");
+                keyPinGradient.addColorStop(1.00, "#c0912e");
             }
             else {
-                fillColor = "yellow";
+                keyPinGradient.addColorStop(0.00, "#c0912e");
+                keyPinGradient.addColorStop(0.50, "#c9982f");
+                keyPinGradient.addColorStop(1.00, "#c0912e");
             }
-
-            const keyPinGradient = c.createRadialGradient(li.x, li.y, keyPinInnerRadius, li.x, li.y, keyPinOuterRadius);
-            
-            keyPinGradient.addColorStop(0.00, "#c0912e");
-            keyPinGradient.addColorStop(0.50, "#c9982f");
-            keyPinGradient.addColorStop(1.00, "#c0912e");
 
             c.fillStyle = keyPinGradient;
 
-            let startAngle = s.keyPinAngle - li.pw / 2 + 0 * li.pp;
-            let endAngle = startAngle + li.pw - 0 * li.pp;
+            let startAngle = s.keyPinAngle - li.pw / 2;
+            let endAngle = startAngle + li.pw;
 
             if (s.keyPinInCut) {
                 startAngle += 3 * li.pp;
@@ -344,6 +339,29 @@
             c.strokeStyle = "rgba(0,0,0,1)";
             c.strokeText(titleText, textX, textY);
 
+            c.restore();
+        }
+
+        function drawStatusBox(c, l, s, g) {
+            const sbLeft = 10;
+            const sbTop = 90;
+            const sbWidth = canvas.width - 20;
+            const sblHeight = 80;
+            const sbFont = "16pt Cormorant Garamond";
+            
+            c.fillStyle = "rgba(255,255,255,0.2)";
+            c.fillRect(sbLeft, sbTop, sbWidth, sblHeight);
+
+            c.save();
+            c.translate(sbLeft, sbTop);
+            
+            c.fillStyle = "black";
+            c.textBaseline = "top";
+            c.font = sbFont;
+            c.fillText("To move the pin around the tumbler", 8, 5);
+            c.fillText("use the [Left] and [Right] keys. Press", 8, 30);
+            c.fillText("[Up] to insert the pin into the cut.", 8, 55);
+            
             c.restore();
         }
 
@@ -469,7 +487,6 @@
             c.fillText(lowerCase, textX + tmUpper.width, r.y + (r.h / 2) - 2);
         }
 
-
         function drawSpots(c, l, s) {
             c.save();
             c.translate(l.x, l.y);
@@ -539,7 +556,7 @@
                 tph: 85,
                 keyHoleRadius: 70,
                 dialRadius: 75,
-                tumblerRadius: 135,
+                tumblerRadius: 130,
                 cutRadius: 100,
                 pinWidth: 30,
                 tumblerSpacing: 10, // space between tumbler and key pin
@@ -732,7 +749,6 @@
                     layoutInfo.spotInfo.push(createParticle());
                 }
 
-                // scratches
                 for (let i = 0; i < gameConfig.numScratches; i++) {
                     layoutInfo.scratchInfo.push(createParticle());
                 }
@@ -812,6 +828,7 @@
                 if (gameState.needsRedraw) {
                     drawBackground(canvasContext, layoutInfo, gameState);
                     drawTitlePanel(canvasContext, layoutInfo, gameState);
+                    drawStatusBox(canvasContext, layoutInfo, gameState);
                     drawTumbler(canvasContext, layoutInfo, gameState);
                     drawScratches(canvasContext, layoutInfo, gameState);
                     drawSpots(canvasContext, layoutInfo, gameState);
