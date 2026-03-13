@@ -295,26 +295,6 @@
                 c.lineWidth = 2;
                 c.stroke();
             }
-
-            // darkening around spinner
-
-           // g = c.createRadialGradient(li.x, li.y, li.r * 0.5, li.x, li.y, li.r * 2.2);
-
-           // g.addColorStop(0, "rgba(0,0,0,0.15)");
-           // g.addColorStop(1, "rgba(0,0,0,0)");
-
-           // c.fillStyle = g;
-            //c.fillRect(0, 0, li.w, li.h);
-
-            // shadow below spinner
-
-           // g = c.createRadialGradient(li.x, li.y + li.r * 0.5, li.r * 0.2, li.x, li.y + li.r * 0.5, li.r * 2.5);
-
-           // g.addColorStop(0, "rgba(0,0,0,0.15)");
-           // g.addColorStop(0.5, "rgba(0,0,0,0.3)");
-           // g.addColorStop(1, "rgba(0,0,0,0)");
-           // c.fillStyle = g;
-          //  c.fillRect(0, 0, li.w, li.h);
         }
 
         function drawTitlePanel(c, l, s, g) {
@@ -330,7 +310,7 @@
 
             // burned text
             c.shadowColor = "rgba(0,0,0,0.55)";
-            c.shadowBlur = 16;
+            c.shadowBlur = 5;
             c.fillStyle = "rgba(0,0,0,0.50)";
             c.fillText(titleText, textX, textY);
 
@@ -342,25 +322,67 @@
             c.restore();
         }
 
+        function drawText(c, t, x, y) {
+            c.textBaseline = "top";
+            c.font =  "16pt Cormorant Garamond";
+
+            // burned text
+            c.shadowColor = "rgba(0,0,0,0.5)";
+            c.shadowBlur = 2;
+            c.fillStyle = "rgba(0,0,0,0.2)";
+            c.fillText(t, x, y);
+
+            // outline
+            c.lineWidth = 1;
+            c.strokeStyle = "rgba(0,0,0,0.6)";
+            c.strokeText(t, x, y);
+        }
+
         function drawStatusBox(c, l, s, g) {
             const sbLeft = 10;
             const sbTop = 90;
             const sbWidth = canvas.width - 20;
-            const sblHeight = 80;
-            const sbFont = "16pt Cormorant Garamond";
+            const sbHeight = 80;
             
-            c.fillStyle = "rgba(255,255,255,0.2)";
-            c.fillRect(sbLeft, sbTop, sbWidth, sblHeight);
-
+            c.fillStyle = "rgba(255,255,255,0.05)";
+            c.fillRect(sbLeft, sbTop, sbWidth, sbHeight);
+         
             c.save();
             c.translate(sbLeft, sbTop);
             
-            c.fillStyle = "black";
-            c.textBaseline = "top";
-            c.font = sbFont;
-            c.fillText("To move the pin around the tumbler", 8, 5);
-            c.fillText("use the [Left] and [Right] keys. Press", 8, 30);
-            c.fillText("[Up] to insert the pin into the cut.", 8, 55);
+            const line1 = "To move the pin around the tumbler";
+            const line2 = "use the [Left] and [Right] keys. Press";
+            const line3 = "[Up] to insert the pin into the cut."
+
+            drawText(c, line1, 8, 5);
+            drawText(c, line2, 8, 30);
+            drawText(c, line3, 8, 55);
+
+            c.strokeStyle = "rgba(0,0,0,0.7)";
+            c.lineWidth = 1;
+
+            c.beginPath();
+            c.moveTo(0, 0);            
+            c.lineTo(sbWidth, 0);
+            c.stroke();
+
+            c.beginPath();
+            c.moveTo(0, 0); 
+            c.lineTo(0, sbHeight);
+            c.stroke();
+
+            c.strokeStyle = "rgba(255,255,255,0.2)";
+            c.lineWidth = 1;
+            
+            c.beginPath();
+            c.moveTo(sbWidth, 0);            
+            c.lineTo(sbWidth, sbHeight);
+            c.stroke();
+
+            c.beginPath();
+            c.moveTo(0, sbHeight); 
+            c.lineTo(sbWidth, sbHeight);
+            c.stroke();
             
             c.restore();
         }
@@ -516,7 +538,7 @@
                 const g = c.createConicGradient(s.a, 0, 0);
 
                 g.addColorStop(0,                    "rgba(255,255,255,0.0)");
-                g.addColorStop(s.pa / (2 * Math.PI), "rgba(255,255,255,0.1)");
+                g.addColorStop(s.pa / (2 * Math.PI), "rgba(255,255,255,0.05)");
 
                 c.beginPath();
                 c.arc(
@@ -591,6 +613,9 @@
 
             // properties above, methods below
 
+            let audioLoop = new Audio("Audio/spinner_spring_recoil.wav");
+
+            audioLoop.loop = true;
             
 
             function gameAction(cmd) {
@@ -599,10 +624,13 @@
                         connectToController();
                         break;
                     case "Start":
+                        audioLoop.play();
                         gameState.tumblerTargetVelocity = gameConfig.tumblerVelocity;
                         layoutInfo.buttonInfo[1].text = "Stop"; // FIXME
                         break;
                     case "Stop":
+                        audioLoop.pause();
+                        audioLoop.currentTime = 0;
                         gameState.tumblerTargetVelocity = 0;
                         layoutInfo.buttonInfo[1].text = "Start"; // FIXME
                         break;
