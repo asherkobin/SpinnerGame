@@ -53,7 +53,7 @@
             c.fill();
 
             c.lineWidth = 1;
-            c.strokeStyle = "#5f4714";
+            c.strokeStyle = "#6f5724";
             c.stroke();
 
             // outline of a key hole
@@ -147,18 +147,19 @@
         function drawTumbler(c, li, s) {
             const startAngle = s.tumblerAngle + li.pw / 2;
             const endAngle = startAngle + (2 * Math.PI - li.pw);
-            const innerRadius = li.tumblerRadius - li.pinWidth;
-            const outerRadius = li.tumblerRadius + 5;
+            const cutRadius = li.tumblerRadius - li.pinWidth;
+            const outerRadius = li.tumblerRadius;
+            const tumblerGradient = c.createRadialGradient(li.x, li.y, li.dialRadius, li.x, li.y, outerRadius);
             
-            const tumblerGradient = c.createRadialGradient(li.x, li.y, innerRadius, li.x, li.y, outerRadius);
-            tumblerGradient.addColorStop(0.00, "#c0912e");
-            tumblerGradient.addColorStop(0.50, "#c9982f");
-            tumblerGradient.addColorStop(1.00, "#c0912e");
+            tumblerGradient.addColorStop(0.00, "#b0811e");
+            tumblerGradient.addColorStop(0.20, "#c9982f");
+            tumblerGradient.addColorStop(0.75, "#c9982f");
+            tumblerGradient.addColorStop(1.00, "#b0811e");
 
             c.beginPath();
             c.moveTo(...pointOnCircle(li.x, li.y, outerRadius, startAngle));
-            c.lineTo(...pointOnCircle(li.x, li.y, innerRadius, startAngle));
-            c.arc(li.x, li.y, innerRadius, startAngle, endAngle, true);
+            c.lineTo(...pointOnCircle(li.x, li.y, cutRadius, startAngle));
+            c.arc(li.x, li.y, cutRadius, startAngle, endAngle, true);
             c.lineTo(...pointOnCircle(li.x, li.y, outerRadius, endAngle));
             c.arc(li.x, li.y, outerRadius, endAngle, startAngle, true);
             
@@ -176,7 +177,7 @@
 
         function drawKeyPin(c, li, s, g) { 
             let keyPinInnerRadius = li.tumblerRadius + li.tumblerSpacing;
-            let keyPinOuterRadius = keyPinInnerRadius + li.pinWidth;
+            let keyPinOuterRadius = keyPinInnerRadius + li.pinWidth - 6;
             let keyPinMiss = false;
 
             if (s.upKeyDown) {
@@ -212,7 +213,7 @@
 
             if (s.keyPinInCut) {
                 keyPinInnerRadius = li.tumblerRadius - li.pinWidth + 6;
-                keyPinOuterRadius = li.tumblerRadius + 4;
+                keyPinOuterRadius = li.tumblerRadius;
                 
                 s.keyPinAngle = s.tumblerAngle;
                 s.needsRedraw = true;
@@ -256,6 +257,8 @@
             c.strokeStyle = "rgba(255,255,255,0.25)";
             c.closePath();
             c.stroke();
+
+            console.log(keyPinOuterRadius - keyPinInnerRadius);
         }
 
         function drawBackground(c, li, s) {
@@ -343,6 +346,7 @@
             const sbTop = 90;
             const sbWidth = canvas.width - 20;
             const sbHeight = 80;
+            const drawInset = false;
             
             c.fillStyle = "rgba(255,255,255,0.05)";
             c.fillRect(sbLeft, sbTop, sbWidth, sbHeight);
@@ -358,7 +362,8 @@
             drawText(c, line2, 8, 30);
             drawText(c, line3, 8, 55);
 
-            c.strokeStyle = "rgba(0,0,0,0.7)";
+            
+            c.strokeStyle = drawInset ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)";
             c.lineWidth = 1;
 
             c.beginPath();
@@ -371,7 +376,7 @@
             c.lineTo(0, sbHeight);
             c.stroke();
 
-            c.strokeStyle = "rgba(255,255,255,0.2)";
+            c.strokeStyle = drawInset ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.5)";
             c.lineWidth = 1;
             
             c.beginPath();
@@ -383,7 +388,7 @@
             c.moveTo(0, sbHeight); 
             c.lineTo(sbWidth, sbHeight);
             c.stroke();
-            
+
             c.restore();
         }
 
@@ -535,10 +540,9 @@
             c.rotate(s.tumblerAngle);
 
             l.scratchInfo.forEach(s => {
-                const g = c.createConicGradient(s.a, 0, 0);
-
-                g.addColorStop(0,                    "rgba(255,255,255,0.0)");
-                g.addColorStop(s.pa / (2 * Math.PI), "rgba(255,255,255,0.05)");
+                //const g = c.createConicGradient(s.a, 0, 0);
+                //g.addColorStop(0,                    "rgba(255,255,255,0.0)");
+                //g.addColorStop(s.pa / (2 * Math.PI), "rgba(255,255,255,0.05)");
 
                 c.beginPath();
                 c.arc(
@@ -548,8 +552,8 @@
                     s.a,
                     s.a + s.pa);
                 
-                c.strokeStyle = g;
-                c.lineWidth = 2;
+                c.strokeStyle = "rgba(0,0,0,0.05)";
+                c.lineWidth = 1;
                 c.stroke();
             });
 
