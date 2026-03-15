@@ -144,10 +144,47 @@
             c.stroke();
         }
 
-        function drawTumbler(c, li, s) {
-            const startAngle = s.tumblerAngle + li.pw / 2;
-            const endAngle = startAngle + (2 * Math.PI - li.pw);
-            const cutRadius = li.tumblerRadius - li.pinWidth;
+        function drawTumbler(c, li, s, g) {
+            const tumblerGradient = c.createRadialGradient(
+                li.x, li.y, li.dialRadius, li.x, li.y, li.tumblerRadius);
+            
+            tumblerGradient.addColorStop(0.00, "#b0811e");
+            tumblerGradient.addColorStop(0.20, "#c9982f");
+            tumblerGradient.addColorStop(0.75, "#c9982f");
+            tumblerGradient.addColorStop(1.00, "#b0811e");
+
+            c.beginPath();
+            c.arc(li.x, li.y, li.tumblerRadius, 0, 2 * Math.PI);
+            
+            c.fillStyle = tumblerGradient;
+            c.fill();
+            
+            c.strokeStyle = "rgba(255,255,255,0.25)";
+            c.lineWidth = 4;
+            c.stroke();
+
+            g.keyPins.forEach(k => {
+                const startAngle = k.ca + s.tumblerAngle + k.w / 2;
+                const endAngle = startAngle + (2 * Math.PI - k.w);
+                const cutRadius = li.tumblerRadius - k.t;
+                const outerRadius = li.tumblerRadius;
+                
+                c.fillStyle = "blue";
+
+                c.beginPath();
+                c.arc(li.x, li.y, cutRadius, startAngle, endAngle, true);
+                c.arc(li.x, li.y, outerRadius, endAngle, startAngle, false);
+                c.fill();
+            });
+        }
+
+        function drawTumblerCut(c, li, s) {
+            const __tempPinWidth = 30 * Math.PI / 180;
+            const __tempPinAngle = 0;
+            
+            const startAngle = s.tumblerAngle + __tempPinWidth / 2;
+            const endAngle = startAngle + (2 * Math.PI - __tempPinWidth);
+            const cutRadius = li.tumblerRadius - __tempPinThickness;
             const outerRadius = li.tumblerRadius;
             const tumblerGradient = c.createRadialGradient(li.x, li.y, li.dialRadius, li.x, li.y, outerRadius);
             
@@ -175,56 +212,83 @@
             return [x + r * Math.cos(a), y + r * Math.sin(a)];
         }
 
-        function drawKeyPin(c, li, s, g) { 
-            let keyPinInnerRadius = li.tumblerRadius + li.tumblerSpacing;
-            let keyPinOuterRadius = keyPinInnerRadius + li.pinWidth - 6;
-            let keyPinMiss = false;
+        function drawKeyPins(c, l, s, g) {
+            let keyPinAngleChange = 0;
 
-            if (s.upKeyDown) {
-                if (!s.keyPinInCut) {
-                    let angleDistance = s.keyPinAngle - s.tumblerAngle;
-                    angleDistance = (angleDistance + Math.PI) % (Math.PI * 2);
-                    if (angleDistance < 0)
-                        angleDistance += Math.PI * 2;
-                    angleDistance = angleDistance - Math.PI;
-
-                    if (Math.abs(angleDistance) < g.matchTolerance) {
-                        s.keyPinInCut = true;
-                    }
-                    else {
-                        keyPinMiss = true;
-                    }
-                }
-            }
-
-            if (s.downKeyDown && s.keyPinInCut) {
-                s.keyPinInCut = false;
-                s.keyPinAngle = s.tumblerAngle;
-            }
+            // nudge clockwise or counterclockwise
 
             if (s.leftKeyDown) {
-                s.keyPinAngle = s.keyPinAngle + 0.01 * Math.PI * 2;
+                keyPinAngleChange = +0.01 * Math.PI * 2;
                 s.needsRedraw = true;
             }
             else if (s.rightKeyDown) {    
-                s.keyPinAngle = s.keyPinAngle - 0.01 * Math.PI * 2;
+                keyPinAngleChange = -0.01 * Math.PI * 2;
                 s.needsRedraw = true;
             }
 
-            if (s.keyPinInCut) {
-                keyPinInnerRadius = li.tumblerRadius - li.pinWidth + 6;
-                keyPinOuterRadius = li.tumblerRadius;
+            g.keyPins.forEach(k => {
                 
-                s.keyPinAngle = s.tumblerAngle;
-                s.needsRedraw = true;
+                k.a += keyPinAngleChange;
+                
+                let canInsert = false;
+                let isMiss = false;
+                let didInsert = false;
+                const activeKeyPin = g.keyPins[s.activeKeyPinIdx];
+
+                // check for insertion attempt
+                
+                if ((k == activeKeyPin) && s.upKeyDown) {
+                    canInsert = isKeyPinInCut(k.a, s.tumblerAngle + k.ca, g.matchTolerance);
+                    isMiss = !canInsert;
+                    k.i = canInsert;
+                    didInsert = canInsert;
+                }
+
+                const globalCtx = { c:c, l:l, s:s, g:g };
+                const localCtx = { a: k.a, w: k.w, t: k.t, m: isMiss, i: k.i };
+
+                drawKeyPin(globalCtx, localCtx);
+
+                if (didInsert) {
+                    s.activeKeyPinIdx += 1;
+                }
+
+            });
+        }
+
+        function isKeyPinInCut(keyPinAngle, tumblerAngle, matchTolerance) {
+            let angleDistance = keyPinAngle - tumblerAngle;
+            angleDistance = (angleDistance + Math.PI) % (Math.PI * 2);
+            if (angleDistance < 0)
+                angleDistance += Math.PI * 2;
+            angleDistance = angleDistance - Math.PI;
+
+            return (Math.abs(angleDistance) < matchTolerance);
+        }
+
+        function drawKeyPin(g, l) { 
+            let keyPinInnerRadius = g.l.tumblerRadius + g.l.tumblerSpacing;
+            let keyPinOuterRadius = keyPinInnerRadius + l.t - 6;
+            let keyPinMiss = false;
+
+            if (l.i) {
+                keyPinInnerRadius = g.l.tumblerRadius - l.t + 6;
+                keyPinOuterRadius = g.l.tumblerRadius;
+                
+                l.a = g.s.tumblerAngle;
+                g.s.needsRedraw = true;
             }
 
-            const keyPinGradient = c.createRadialGradient(li.x, li.y, keyPinInnerRadius, li.x, li.y, keyPinOuterRadius);
+            const keyPinGradient = g.c.createRadialGradient(
+                g.l.x, g.l.y,
+                keyPinInnerRadius,
+                g.l.x, g.l.y,
+                keyPinOuterRadius);
 
-            if (keyPinMiss) {
+            if (l.m) {
                 keyPinGradient.addColorStop(0.00, "#a13b2f");
             }
-            else if (s.keyPinInCut) {
+            else if (l.i) {
                 keyPinGradient.addColorStop(0.00, "#c0912e");
                 keyPinGradient.addColorStop(0.50, "#c9982f");
                 keyPinGradient.addColorStop(1.00, "#c0912e");
@@ -235,30 +299,32 @@
                 keyPinGradient.addColorStop(1.00, "#c0912e");
             }
 
-            c.fillStyle = keyPinGradient;
+            g.c.fillStyle = keyPinGradient;
 
-            let startAngle = s.keyPinAngle - li.pw / 2;
-            let endAngle = startAngle + li.pw;
+            let startAngle = l.a - l.w / 2;
+            let endAngle = startAngle + l.w;
 
-            if (s.keyPinInCut) {
-                startAngle += 3 * li.pp;
-                endAngle -= 3 * li.pp;
+            // adjust for padding
+
+            const paddingInRadians = 1 * Math.PI / 180; // one degree
+            
+            if (l.i) {
+                startAngle += 3 * paddingInRadians;
+                endAngle -= 3 * paddingInRadians;
             }
             else {
-                startAngle += 5 * li.pp;
-                endAngle -= 5 * li.pp;
+                startAngle += 5 * paddingInRadians;
+                endAngle -= 5 * paddingInRadians;
             }
             
-            c.beginPath();
-            c.arc(li.x, li.y, keyPinOuterRadius, startAngle, endAngle, false);
-            c.arc(li.x, li.y, keyPinInnerRadius, endAngle, startAngle, true);
-            c.fill();
-            c.lineWidth = 4;
-            c.strokeStyle = "rgba(255,255,255,0.25)";
-            c.closePath();
-            c.stroke();
-
-            console.log(keyPinOuterRadius - keyPinInnerRadius);
+            g.c.beginPath();
+            g.c.arc(g.l.x, g.l.y, keyPinOuterRadius, startAngle, endAngle, false);
+            g.c.arc(g.l.x, g.l.y, keyPinInnerRadius, endAngle, startAngle, true);
+            g.c.fill();
+            g.c.lineWidth = 4;
+            g.c.strokeStyle = "rgba(255,255,255,0.25)";
+            g.c.closePath();
+            g.c.stroke();
         }
 
         function drawBackground(c, li, s) {
@@ -568,8 +634,6 @@
                 h: canvas.height,
                 x: canvas.width / 2,
                 y: canvas.height / 2,
-                pw: 30 * Math.PI / 180,  // key pin width
-                pp: 1 * Math.PI / 180,   // key pin padding
                 bh: 75,
                 bw: 150,
                 bpx: 0,
@@ -584,7 +648,6 @@
                 dialRadius: 75,
                 tumblerRadius: 130,
                 cutRadius: 100,
-                pinWidth: 30,
                 tumblerSpacing: 10, // space between tumbler and key pin
                 buttonInfo: [
                     { text: "Connect", s: "normal" },
@@ -595,8 +658,6 @@
             };
             const gameState = {
                 tumblerAngle: 0,
-                keyPinAngle: 0,
-                keyPinInCut: false,
                 rightKeyDown: false,
                 leftKeyDown: false,
                 upKeyDown: false,
@@ -604,7 +665,8 @@
                 lastTime: 0,
                 needsRedraw: true,
                 tumblerTargetVelocity: 0,
-                tumblerVelocity: 0
+                tumblerVelocity: 0,
+                activeKeyPinIdx: null
             };
             const gameConfig = {
                 matchTolerance: (Math.PI / 180) * 5, // 5 degrees
@@ -612,7 +674,12 @@
                 tumblerAcceleration: 0.000002,
                 tumblerFriction: 0.94,
                 numSpots: 10,
-                numScratches: 10
+                numScratches: 10,
+                keyPins: [
+                    { w: 30 * Math.PI / 180, t: 30, a: 0 },
+                    { w: 20 * Math.PI / 180, t: 30, a: Math.PI },
+                    { w: 50 * Math.PI / 180, t: 30, a: Math.PI / 2 }
+                ]
             };
 
             // properties above, methods below
@@ -766,6 +833,14 @@
                 }
             };
 
+            function initKeyPins() {
+                gameState.activeKeyPinIdx = 0;
+
+                gameConfig.keyPins.forEach(k => {
+                    k.ca = k.a;
+                });
+            }
+
             function createParticles() {
                 const createParticle = () => {
                     const r = layoutInfo.keyHoleRadius + Math.random() * (layoutInfo.tumblerRadius - layoutInfo.keyHoleRadius);
@@ -861,12 +936,12 @@
                     drawBackground(canvasContext, layoutInfo, gameState);
                     drawTitlePanel(canvasContext, layoutInfo, gameState);
                     drawStatusBox(canvasContext, layoutInfo, gameState);
-                    drawTumbler(canvasContext, layoutInfo, gameState);
+                    drawTumbler(canvasContext, layoutInfo, gameState, gameConfig);
                     drawScratches(canvasContext, layoutInfo, gameState);
                     drawSpots(canvasContext, layoutInfo, gameState);
                     drawDial(canvasContext, layoutInfo, gameState);
                     drawKeyHole(canvasContext, layoutInfo, gameState);
-                    drawKeyPin(canvasContext, layoutInfo, gameState, gameConfig);
+                    drawKeyPins(canvasContext, layoutInfo, gameState, gameConfig)
                     drawButtonPanel(canvasContext, layoutInfo, gameState, gameConfig);
                     
                     if (gameState.leftKeyDown || gameState.rightKeyDown) {
@@ -881,6 +956,7 @@
 
             // game starts here
 
+            initKeyPins();
             createParticles();
             setupEventHandlers();
             animationLoop(0);
