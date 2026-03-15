@@ -292,10 +292,10 @@
             if (l.m) {
                 keyPinGradient.addColorStop(0.00, "#a13b2f");
             }
-            else if (l.h) {
-                keyPinGradient.addColorStop(0.00, "#c0912e");
-                keyPinGradient.addColorStop(0.50, "#c9982f");
-                keyPinGradient.addColorStop(1.00, "#c0912e");
+            else if (false) {
+                keyPinGradient.addColorStop(0.00, "#d7b45a");
+                keyPinGradient.addColorStop(0.50, "#f0d07a");
+                keyPinGradient.addColorStop(1.00, "#d7b45a");
             }
             else {
                 keyPinGradient.addColorStop(0.00, "#c0912e");
@@ -330,20 +330,51 @@
             g.c.closePath();
             g.c.stroke();
 
-            if (l.h) { // selected outline
-                startAngle -= (2 * Math.PI / 180);
-                endAngle += (2 * Math.PI / 180);
-                keyPinOuterRadius += 5;
-                keyPinInnerRadius -= 5;
+            if (l.h) {
+                const localCtx = { 
+                    sa: startAngle,
+                    ea: endAngle,
+                    r: keyPinInnerRadius + (keyPinOuterRadius - keyPinInnerRadius) / 2,
+                    c: "#6a4c1a"};
 
-                g.c.beginPath();
-                g.c.arc(g.l.x, g.l.y, keyPinOuterRadius, startAngle, endAngle, false);
-                g.c.arc(g.l.x, g.l.y, keyPinInnerRadius, endAngle, startAngle, true);
-                g.c.lineWidth = 1;
-                g.c.strokeStyle = "white";
-                g.c.closePath();
-                g.c.stroke();
+                drawRadialArrow(g, localCtx);
             }
+        }
+
+        function drawRadialArrow(g, l) {
+            const arrowStart = l.sa + 0.08;
+            const arrowEnd = l.ea - 0.08;
+            const mr = l.r;
+            const ir = mr - 5;
+            const or = mr + 5;
+            const [six, siy] = [...pointOnCircle(g.l.x, g.l.y, ir, arrowStart)];
+            const [sox, soy] = [...pointOnCircle(g.l.x, g.l.y, or, arrowStart)];
+            const [scx, scy] = [...pointOnCircle(g.l.x, g.l.y, mr, arrowStart - 0.05)];
+            const [eix, eiy] = [...pointOnCircle(g.l.x, g.l.y, ir, arrowEnd)];
+            const [eox, eoy] = [...pointOnCircle(g.l.x, g.l.y, or, arrowEnd)];
+            const [ecx, ecy] = [...pointOnCircle(g.l.x, g.l.y, mr, arrowEnd + 0.05)];
+
+            g.c.lineWidth = 2;
+            g.c.strokeStyle = l.c;
+            g.c.fillStyle = l.c;
+            
+            g.c.beginPath();
+            g.c.arc(g.l.x, g.l.y, mr, arrowStart, arrowEnd);
+            g.c.stroke();
+
+            g.c.beginPath();
+            g.c.moveTo(six, siy);
+            g.c.lineTo(sox, soy);
+            g.c.lineTo(scx, scy);
+            g.c.lineTo(six, siy);
+            g.c.fill();
+
+            g.c.beginPath();
+            g.c.moveTo(eix, eiy);
+            g.c.lineTo(eox, eoy);
+            g.c.lineTo(ecx, ecy);
+            g.c.lineTo(eix, eiy);
+            g.c.fill();
         }
 
         function drawBackground(c, li, s) {
