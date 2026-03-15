@@ -169,7 +169,7 @@
                 const cutRadius = li.tumblerRadius - k.t;
                 const outerRadius = li.tumblerRadius;
                 
-                c.fillStyle = "blue";
+                c.fillStyle = "#5a3b23";
 
                 c.beginPath();
                 c.arc(li.x, li.y, cutRadius, startAngle, endAngle, true);
@@ -214,6 +214,7 @@
 
         function drawKeyPins(c, l, s, g) {
             let keyPinAngleChange = 0;
+            const activeKeyPin = g.keyPins[s.activeKeyPinIdx];
 
             // nudge clockwise or counterclockwise
 
@@ -227,32 +228,34 @@
             }
 
             g.keyPins.forEach(k => {
-                
                 k.a += keyPinAngleChange;
                 
+                const isActive = (k == activeKeyPin);
                 let canInsert = false;
                 let isMiss = false;
-                let didInsert = false;
-                const activeKeyPin = g.keyPins[s.activeKeyPinIdx];
 
-                // check for insertion attempt
+                // handle insertion attempt
                 
-                if ((k == activeKeyPin) && s.upKeyDown) {
-                    canInsert = isKeyPinInCut(k.a, s.tumblerAngle + k.ca, g.matchTolerance);
-                    isMiss = !canInsert;
-                    k.i = canInsert;
-                    didInsert = canInsert;
+                if (isActive && s.upKeyDown) {
+                    if (k.i) {
+                        console.log("NYI: Behavior Undefined!!!");
+                    }
+                    else {
+                        canInsert = isKeyPinInCut(k.a, s.tumblerAngle + k.ca, g.matchTolerance);
+                        isMiss = !canInsert;
+                        k.i = canInsert;
+                        k.a = canInsert ? s.tumblerAngle : k.a; // align if inserted
+                        s.keyPinWasInserted = canInsert;
+                    }
                 }
 
                 const globalCtx = { c:c, l:l, s:s, g:g };
-                const localCtx = { a: k.a, w: k.w, t: k.t, m: isMiss, i: k.i };
+                const localCtx = {
+                    a: k.a, w: k.w, t: k.t, i: k.i, ca: k.ca,
+                    m: isMiss,
+                    h: isActive };
 
                 drawKeyPin(globalCtx, localCtx);
-
-                if (didInsert) {
-                    s.activeKeyPinIdx += 1;
-                }
-
             });
         }
 
@@ -274,9 +277,10 @@
             if (l.i) {
                 keyPinInnerRadius = g.l.tumblerRadius - l.t + 6;
                 keyPinOuterRadius = g.l.tumblerRadius;
+
+                l.a = g.s.tumblerAngle + l.ca;
                 
-                l.a = g.s.tumblerAngle;
-                g.s.needsRedraw = true;
+                g.s.needsRedraw = true; // FIXME
             }
 
             const keyPinGradient = g.c.createRadialGradient(
@@ -288,7 +292,7 @@
             if (l.m) {
                 keyPinGradient.addColorStop(0.00, "#a13b2f");
             }
-            else if (l.i) {
+            else if (l.h) {
                 keyPinGradient.addColorStop(0.00, "#c0912e");
                 keyPinGradient.addColorStop(0.50, "#c9982f");
                 keyPinGradient.addColorStop(1.00, "#c0912e");
@@ -325,6 +329,21 @@
             g.c.strokeStyle = "rgba(255,255,255,0.25)";
             g.c.closePath();
             g.c.stroke();
+
+            if (l.h) { // selected outline
+                startAngle -= (2 * Math.PI / 180);
+                endAngle += (2 * Math.PI / 180);
+                keyPinOuterRadius += 5;
+                keyPinInnerRadius -= 5;
+
+                g.c.beginPath();
+                g.c.arc(g.l.x, g.l.y, keyPinOuterRadius, startAngle, endAngle, false);
+                g.c.arc(g.l.x, g.l.y, keyPinInnerRadius, endAngle, startAngle, true);
+                g.c.lineWidth = 1;
+                g.c.strokeStyle = "white";
+                g.c.closePath();
+                g.c.stroke();
+            }
         }
 
         function drawBackground(c, li, s) {
@@ -666,7 +685,8 @@
                 needsRedraw: true,
                 tumblerTargetVelocity: 0,
                 tumblerVelocity: 0,
-                activeKeyPinIdx: null
+                activeKeyPinIdx: null,
+                keyPinWasInserted: false
             };
             const gameConfig = {
                 matchTolerance: (Math.PI / 180) * 5, // 5 degrees
@@ -677,8 +697,8 @@
                 numScratches: 10,
                 keyPins: [
                     { w: 30 * Math.PI / 180, t: 30, a: 0 },
-                    { w: 20 * Math.PI / 180, t: 30, a: Math.PI },
-                    { w: 50 * Math.PI / 180, t: 30, a: Math.PI / 2 }
+                    { w: 20 * Math.PI / 180, t: 40, a: Math.PI },
+                    { w: 50 * Math.PI / 180, t: 20, a: Math.PI / 4 }
                 ]
             };
 
@@ -932,6 +952,15 @@
             };
 
             const drawFrame = () => {
+
+                // handle insertion success FIXME: Check other stuff here not in drawXXX
+
+                if (gameState.keyPinWasInserted && !gameState.upKeyDown) {
+                    gameState.activeKeyPinIdx += 1;
+                    gameState.keyPinWasInserted = false;
+                    gameState.needsRedraw = true;
+                }
+
                 if (gameState.needsRedraw) {
                     drawBackground(canvasContext, layoutInfo, gameState);
                     drawTitlePanel(canvasContext, layoutInfo, gameState);
