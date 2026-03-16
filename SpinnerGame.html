@@ -154,60 +154,47 @@
             tumblerGradient.addColorStop(0.75, "#c9982f");
             tumblerGradient.addColorStop(1.00, "#b0811e");
 
+            c.save();
+            c.translate(li.x, li.y);
+            c.rotate(s.tumblerAngle);
+
             c.beginPath();
-            c.arc(li.x, li.y, li.tumblerRadius, 0, 2 * Math.PI);
+
+            let curAngle = 0; 
+
+            c.moveTo(li.tumblerRadius, 0);
+
+            g.keyPins.forEach(p => {
+                const startAngle = p.ca;
+                const endAngle = startAngle + p.w;
+                const cutDepth = li.tumblerRadius - p.r;
+                
+                c.arc(0, 0, li.tumblerRadius, curAngle, startAngle);
+                c.lineTo(...pointOnCircle(0, 0, cutDepth, startAngle));
+                c.arc(0, 0, cutDepth, startAngle, endAngle);
+                c.lineTo(...pointOnCircle(0, 0, li.tumblerRadius, endAngle));
+                
+                curAngle = endAngle;
+            });
+            
+            c.arc(0, 0, li.tumblerRadius, curAngle, 2 * Math.PI);
+            c.lineTo(li.tumblerRadius - 1, 0);
             
             c.fillStyle = tumblerGradient;
             c.fill();
             
             c.strokeStyle = "rgba(255,255,255,0.25)";
-            c.lineWidth = 4;
+            c.lineWidth = 4
             c.stroke();
-        }
 
-        function drawTumblerCuts(g) {
-            g.c.fillStyle = "rgba(0,0,0,0)";
-            g.c.strokeStyle = "rgba(255,255,255,0.25)";
-            g.c.lineWidth = 4;
-
-            g.g.keyPins.forEach(k => {
-                const startAngle = k.ca + g.s.tumblerAngle + k.w / 2;
-                const endAngle = startAngle + (2 * Math.PI - k.w);
-                let cutRadius = g.l.tumblerRadius - k.t;
-                let outerRadius = g.l.tumblerRadius + 3;
-
-                // background
-
-                g.c.save();
-                g.c.beginPath();
-                g.c.arc(g.l.x, g.l.y, cutRadius, startAngle, endAngle, true);
-                g.c.arc(g.l.x, g.l.y, outerRadius, endAngle, startAngle, false);
-                g.c.fill();
-                g.c.clip();
-                g.c.drawImage(g.s.maskCanvas, 0, 0);
-                g.c.restore();
-
-                // outline
-
-                const tinyArc = 0.01;
-                outerRadius -= g.c.lineWidth;
-
-                g.c.beginPath();
-                g.c.moveTo(...pointOnCircle(g.l.x, g.l.y, outerRadius, startAngle + tinyArc));
-                g.c.arc(g.l.x, g.l.y, outerRadius, startAngle + tinyArc, startAngle, true);
-                g.c.lineTo(...pointOnCircle(g.l.x, g.l.y, cutRadius, startAngle));
-                g.c.arc(g.l.x, g.l.y, cutRadius, startAngle, endAngle, true);
-                g.c.lineTo(...pointOnCircle(g.l.x, g.l.y, outerRadius, endAngle));
-                g.c.arc(g.l.x, g.l.y, outerRadius, endAngle, endAngle - tinyArc, true);
-                g.c.stroke();
-            });
+            c.restore();
         }
 
         function pointOnCircle(x, y, r, a) {
             return [x + r * Math.cos(a), y + r * Math.sin(a)];
         }
 
-        function drawKeyPins(c, l, s, g) {
+        function drawPins(c, l, s, g) {
             let keyPinAngleChange = 0;
             const activeKeyPin = g.keyPins[s.activeKeyPinIdx];
 
@@ -222,35 +209,35 @@
                 s.needsRedraw = true;
             }
 
-            g.keyPins.forEach(k => {
-                k.a += keyPinAngleChange;
+            g.keyPins.forEach(p => {
+                p.a += keyPinAngleChange;
                 
-                const isActive = (k == activeKeyPin);
+                const isActive = (p == activeKeyPin);
                 let canInsert = false;
                 let isMiss = false;
 
                 // handle insertion attempt
                 
                 if (isActive && s.upKeyDown) {
-                    if (k.i) {
+                    if (p.i) {
                         console.log("NYI: Behavior Undefined!!!");
                     }
                     else {
-                        canInsert = isKeyPinInCut(k.a, s.tumblerAngle + k.ca, g.matchTolerance);
+                        canInsert = isKeyPinInCut(p.a, s.tumblerAngle + p.ca, g.matchTolerance);
                         isMiss = !canInsert;
-                        k.i = canInsert;
-                        k.a = canInsert ? s.tumblerAngle : k.a; // align if inserted
+                        p.i = canInsert;
+                        p.a = canInsert ? s.tumblerAngle : p.a; // align if inserted
                         s.keyPinWasInserted = canInsert;
                     }
                 }
 
                 const globalCtx = { c:c, l:l, s:s, g:g };
                 const localCtx = {
-                    a: k.a, w: k.w, t: k.t, i: k.i, ca: k.ca,
+                    a: p.a, w: p.w, r: p.r, i: p.i, ca: p.ca,
                     m: isMiss,
                     h: isActive };
 
-                drawKeyPin(globalCtx, localCtx);
+                drawPin(globalCtx, localCtx);
             });
         }
 
@@ -264,16 +251,16 @@
             return (Math.abs(angleDistance) < matchTolerance);
         }
 
-        function drawKeyPin(g, l) { 
+        function drawPin(g, pin) { 
             let keyPinInnerRadius = g.l.tumblerRadius + g.l.tumblerSpacing;
-            let keyPinOuterRadius = keyPinInnerRadius + l.t - 6;
+            let keyPinOuterRadius = keyPinInnerRadius + pin.r - 6;
             let keyPinMiss = false;
 
-            if (l.i) {
-                keyPinInnerRadius = g.l.tumblerRadius - l.t + 6;
+            if (pin.i) {
+                keyPinInnerRadius = g.l.tumblerRadius - pin.r + 6;
                 keyPinOuterRadius = g.l.tumblerRadius;
 
-                l.a = g.s.tumblerAngle + l.ca;
+                pin.a = g.s.tumblerAngle + pin.ca;
                 
                 g.s.needsRedraw = true; // FIXME
             }
@@ -284,7 +271,7 @@
                 g.l.x, g.l.y,
                 keyPinOuterRadius);
 
-            if (l.m) {
+            if (pin.m) {
                 keyPinGradient.addColorStop(0.00, "#a13b2f");
             }
             else if (false) {
@@ -300,14 +287,14 @@
 
             g.c.fillStyle = keyPinGradient;
 
-            let startAngle = l.a - l.w / 2;
-            let endAngle = startAngle + l.w;
+            let startAngle = pin.a;// - l.w / 2;
+            let endAngle = startAngle + pin.w;
 
             // adjust for padding
 
             const paddingInRadians = 1 * Math.PI / 180; // one degree
             
-            if (l.i) {
+            if (pin.i) {
                 startAngle += 3 * paddingInRadians;
                 endAngle -= 3 * paddingInRadians;
             }
@@ -325,7 +312,7 @@
             g.c.closePath();
             g.c.stroke();
 
-            if (l.h) {
+            if (pin.h) {
                 const localCtx = { 
                     sa: startAngle,
                     ea: endAngle,
@@ -692,7 +679,6 @@
                 keyHoleRadius: 70,
                 dialRadius: 75,
                 tumblerRadius: 130,
-                cutRadius: 100,
                 tumblerSpacing: 10, // space between tumbler and key pin
                 buttonInfo: [
                     { text: "Connect", s: "normal" },
@@ -722,9 +708,9 @@
                 numSpots: 10,
                 numScratches: 10,
                 keyPins: [
-                    { w: 30 * Math.PI / 180, t: 30, a: 0 },
-                    { w: 20 * Math.PI / 180, t: 40, a: Math.PI },
-                    { w: 50 * Math.PI / 180, t: 20, a: Math.PI / 4 }
+                    { startDeg: 0,   widthDeg: 30, depthPx: 30 },
+                    { startDeg: 45,  widthDeg: 20, depthPx: 40 },
+                    { startDeg: 200, widthDeg: 50, depthPx: 20 }
                 ]
             };
 
@@ -878,7 +864,7 @@
                 }
             };
 
-            function initKeyPins() {
+            function initPins() {
                 const maskCanvas = canvas.ownerDocument.createElement("canvas");
 
                 maskCanvas.width = canvas.width;
@@ -887,8 +873,13 @@
                 gameState.maskCanvas = maskCanvas;
                 gameState.activeKeyPinIdx = 0;
 
-                gameConfig.keyPins.forEach(k => {
-                    k.ca = k.a;
+                gameConfig.keyPins.forEach(p => {
+                    // FIXME: Don't mix state with config
+                    p.w = p.widthDeg * Math.PI / 180;
+                    p.a = p.startDeg * Math.PI / 180;
+                    p.r = p.depthPx;
+                    p.ca = p.a;
+                    p.i = false;
                 });
 
                 drawBackground({
@@ -1002,12 +993,11 @@
                     drawTitlePanel(canvasCtx, layoutInfo, gameState);
                     drawStatusBox(canvasCtx, layoutInfo, gameState);
                     drawTumbler(canvasCtx, layoutInfo, gameState, gameConfig);
-                    drawTumblerCuts(globalCtx);
                     drawScratches(canvasCtx, layoutInfo, gameState);
                     drawSpots(canvasCtx, layoutInfo, gameState);
                     drawDial(canvasCtx, layoutInfo, gameState);
                     drawKeyHole(canvasCtx, layoutInfo, gameState);
-                    drawKeyPins(canvasCtx, layoutInfo, gameState, gameConfig)
+                    drawPins(canvasCtx, layoutInfo, gameState, gameConfig)
                     drawButtonPanel(canvasCtx, layoutInfo, gameState, gameConfig);
                     
                     if (gameState.leftKeyDown || gameState.rightKeyDown) {
@@ -1022,7 +1012,7 @@
 
             // game starts here
 
-            initKeyPins();
+            initPins();
             createParticles();
             setupEventHandlers();
             animationLoop(0);
