@@ -26,6 +26,7 @@
         canvas {
             display: block;
             border: 1px solid black;
+            margin: auto;
         }
         body {
             background-color: black;
@@ -162,50 +163,44 @@
             c.strokeStyle = "rgba(255,255,255,0.25)";
             c.lineWidth = 4;
             c.stroke();
-
-            g.keyPins.forEach(k => {
-                const startAngle = k.ca + s.tumblerAngle + k.w / 2;
-                const endAngle = startAngle + (2 * Math.PI - k.w);
-                const cutRadius = li.tumblerRadius - k.t;
-                const outerRadius = li.tumblerRadius;
-                
-                c.fillStyle = "#5a3b23";
-
-                c.beginPath();
-                c.arc(li.x, li.y, cutRadius, startAngle, endAngle, true);
-                c.arc(li.x, li.y, outerRadius, endAngle, startAngle, false);
-                c.fill();
-            });
         }
 
-        function drawTumblerCut(c, li, s) {
-            const __tempPinWidth = 30 * Math.PI / 180;
-            const __tempPinAngle = 0;
-            
-            const startAngle = s.tumblerAngle + __tempPinWidth / 2;
-            const endAngle = startAngle + (2 * Math.PI - __tempPinWidth);
-            const cutRadius = li.tumblerRadius - __tempPinThickness;
-            const outerRadius = li.tumblerRadius;
-            const tumblerGradient = c.createRadialGradient(li.x, li.y, li.dialRadius, li.x, li.y, outerRadius);
-            
-            tumblerGradient.addColorStop(0.00, "#b0811e");
-            tumblerGradient.addColorStop(0.20, "#c9982f");
-            tumblerGradient.addColorStop(0.75, "#c9982f");
-            tumblerGradient.addColorStop(1.00, "#b0811e");
+        function drawTumblerCuts(g) {
+            g.c.fillStyle = "rgba(0,0,0,0)";
+            g.c.strokeStyle = "rgba(255,255,255,0.25)";
+            g.c.lineWidth = 4;
 
-            c.beginPath();
-            c.moveTo(...pointOnCircle(li.x, li.y, outerRadius, startAngle));
-            c.lineTo(...pointOnCircle(li.x, li.y, cutRadius, startAngle));
-            c.arc(li.x, li.y, cutRadius, startAngle, endAngle, true);
-            c.lineTo(...pointOnCircle(li.x, li.y, outerRadius, endAngle));
-            c.arc(li.x, li.y, outerRadius, endAngle, startAngle, true);
-            
-            c.fillStyle = tumblerGradient;
-            c.fill();
-            
-            c.strokeStyle = "rgba(255,255,255,0.25)";
-            c.lineWidth = 4;
-            c.stroke();
+            g.g.keyPins.forEach(k => {
+                const startAngle = k.ca + g.s.tumblerAngle + k.w / 2;
+                const endAngle = startAngle + (2 * Math.PI - k.w);
+                let cutRadius = g.l.tumblerRadius - k.t;
+                let outerRadius = g.l.tumblerRadius + 3;
+
+                // background
+
+                g.c.save();
+                g.c.beginPath();
+                g.c.arc(g.l.x, g.l.y, cutRadius, startAngle, endAngle, true);
+                g.c.arc(g.l.x, g.l.y, outerRadius, endAngle, startAngle, false);
+                g.c.fill();
+                g.c.clip();
+                g.c.drawImage(g.s.maskCanvas, 0, 0);
+                g.c.restore();
+
+                // outline
+
+                const tinyArc = 0.01;
+                outerRadius -= g.c.lineWidth;
+
+                g.c.beginPath();
+                g.c.moveTo(...pointOnCircle(g.l.x, g.l.y, outerRadius, startAngle + tinyArc));
+                g.c.arc(g.l.x, g.l.y, outerRadius, startAngle + tinyArc, startAngle, true);
+                g.c.lineTo(...pointOnCircle(g.l.x, g.l.y, cutRadius, startAngle));
+                g.c.arc(g.l.x, g.l.y, cutRadius, startAngle, endAngle, true);
+                g.c.lineTo(...pointOnCircle(g.l.x, g.l.y, outerRadius, endAngle));
+                g.c.arc(g.l.x, g.l.y, outerRadius, endAngle, endAngle - tinyArc, true);
+                g.c.stroke();
+            });
         }
 
         function pointOnCircle(x, y, r, a) {
@@ -377,42 +372,42 @@
             g.c.fill();
         }
 
-        function drawBackground(c, li, s) {
-            let g = c.createLinearGradient(0, 0, 0, li.h);
+        function drawBackground(g) {
+            let gr = g.c.createLinearGradient(0, 0, 0, g.l.h);
             
-            g.addColorStop(0, "#5a3b23");
-            g.addColorStop(0.5, "#4a2f1d");
-            g.addColorStop(1, "#3a2416");
-            c.fillStyle = g;
-            c.fillRect(0, 0, li.w, li.h);
+            gr.addColorStop(0, "#5a3b23");
+            gr.addColorStop(0.5, "#4a2f1d");
+            gr.addColorStop(1, "#3a2416");
+            g.c.fillStyle = gr;
+            g.c.fillRect(0, 0, g.l.w, g.l.h);
 
             // woodgrain
 
-            for (let i = 0; i < li.w; i += 10) {
-                c.beginPath();
-                c.moveTo(i + Math.sin(i * 0.02) * 6, 0);
-                c.lineTo(i + Math.sin(i * 0.02) * 6, li.h);
-                c.strokeStyle = "rgba(0,0,0,0.15)";
-                c.lineWidth = 1;
-                c.stroke();
+            for (let i = 0; i < g.l.w; i += 10) {
+                g.c.beginPath();
+                g.c.moveTo(i + Math.sin(i * 0.02) * 6, 0);
+                g.c.lineTo(i + Math.sin(i * 0.02) * 6, g.l.h);
+                g.c.strokeStyle = "rgba(0,0,0,0.15)";
+                g.c.lineWidth = 1;
+                g.c.stroke();
             }
 
-            for (let i = 0; i < li.w; i += 25) {
-                c.beginPath();
-                c.moveTo(i + Math.sin(i * 0.03) * 3, 0);
-                c.lineTo(i + Math.sin(i * 0.03) * 3, li.h);
-                c.strokeStyle = "rgba(0,0,0,0.10)";
-                c.lineWidth = 2;
-                c.stroke();
+            for (let i = 0; i < g.l.w; i += 25) {
+                g.c.beginPath();
+                g.c.moveTo(i + Math.sin(i * 0.03) * 3, 0);
+                g.c.lineTo(i + Math.sin(i * 0.03) * 3, g.l.h);
+                g.c.strokeStyle = "rgba(0,0,0,0.10)";
+                g.c.lineWidth = 2;
+                g.c.stroke();
             }
 
-            for (let i = 0; i < li.w; i += 60) {
-                c.beginPath();
-                c.moveTo(i + Math.sin(i * 0.01) * 10, 0);
-                c.lineTo(i + Math.sin(i * 0.01) * 10, li.h);
-                c.strokeStyle = "rgba(0,0,0,0.18)";
-                c.lineWidth = 2;
-                c.stroke();
+            for (let i = 0; i < g.l.w; i += 60) {
+                g.c.beginPath();
+                g.c.moveTo(i + Math.sin(i * 0.01) * 10, 0);
+                g.c.lineTo(i + Math.sin(i * 0.01) * 10, g.l.h);
+                g.c.strokeStyle = "rgba(0,0,0,0.18)";
+                g.c.lineWidth = 2;
+                g.c.stroke();
             }
         }
 
@@ -678,7 +673,7 @@
 
         function startGame(htmlDoc) {
             const canvas = htmlDoc.getElementById("canvas");
-            const canvasContext = canvas.getContext("2d");
+            const canvasCtx = canvas.getContext("2d");
             const layoutInfo = {
                 w: canvas.width,
                 h: canvas.height,
@@ -738,7 +733,6 @@
             let audioLoop = new Audio("Audio/spinner_spring_recoil.wav");
 
             audioLoop.loop = true;
-            
 
             function gameAction(cmd) {
                 switch (cmd) {
@@ -885,11 +879,21 @@
             };
 
             function initKeyPins() {
+                const maskCanvas = canvas.ownerDocument.createElement("canvas");
+
+                maskCanvas.width = canvas.width;
+                maskCanvas.height = canvas.height;
+            
+                gameState.maskCanvas = maskCanvas;
                 gameState.activeKeyPinIdx = 0;
 
                 gameConfig.keyPins.forEach(k => {
                     k.ca = k.a;
                 });
+
+                drawBackground({
+                    c: maskCanvas.getContext("2d"),
+                    l: layoutInfo });
             }
 
             function createParticles() {
@@ -982,8 +986,7 @@
                 requestAnimationFrame(animationLoop);
             };
 
-            const drawFrame = () => {
-
+            function drawFrame() {
                 // handle insertion success FIXME: Check other stuff here not in drawXXX
 
                 if (gameState.keyPinWasInserted && !gameState.upKeyDown) {
@@ -993,16 +996,19 @@
                 }
 
                 if (gameState.needsRedraw) {
-                    drawBackground(canvasContext, layoutInfo, gameState);
-                    drawTitlePanel(canvasContext, layoutInfo, gameState);
-                    drawStatusBox(canvasContext, layoutInfo, gameState);
-                    drawTumbler(canvasContext, layoutInfo, gameState, gameConfig);
-                    drawScratches(canvasContext, layoutInfo, gameState);
-                    drawSpots(canvasContext, layoutInfo, gameState);
-                    drawDial(canvasContext, layoutInfo, gameState);
-                    drawKeyHole(canvasContext, layoutInfo, gameState);
-                    drawKeyPins(canvasContext, layoutInfo, gameState, gameConfig)
-                    drawButtonPanel(canvasContext, layoutInfo, gameState, gameConfig);
+                    const globalCtx = { c: canvasCtx, l: layoutInfo, s: gameState, g: gameConfig };
+
+                    drawBackground(globalCtx);
+                    drawTitlePanel(canvasCtx, layoutInfo, gameState);
+                    drawStatusBox(canvasCtx, layoutInfo, gameState);
+                    drawTumbler(canvasCtx, layoutInfo, gameState, gameConfig);
+                    drawTumblerCuts(globalCtx);
+                    drawScratches(canvasCtx, layoutInfo, gameState);
+                    drawSpots(canvasCtx, layoutInfo, gameState);
+                    drawDial(canvasCtx, layoutInfo, gameState);
+                    drawKeyHole(canvasCtx, layoutInfo, gameState);
+                    drawKeyPins(canvasCtx, layoutInfo, gameState, gameConfig)
+                    drawButtonPanel(canvasCtx, layoutInfo, gameState, gameConfig);
                     
                     if (gameState.leftKeyDown || gameState.rightKeyDown) {
                         // don't reset if something is happening
