@@ -195,47 +195,15 @@
         }
 
         function drawPins(c, l, s, g) {
-            let keyPinAngleChange = 0;
             const activeKeyPin = g.keyPins[s.activeKeyPinIdx];
 
-            // nudge clockwise or counterclockwise
-
-            if (s.leftKeyDown) {
-                keyPinAngleChange = +0.01 * Math.PI * 2;
-                s.needsRedraw = true;
-            }
-            else if (s.rightKeyDown) {    
-                keyPinAngleChange = -0.01 * Math.PI * 2;
-                s.needsRedraw = true;
-            }
-
             g.keyPins.forEach(p => {
-                p.a += keyPinAngleChange;
-                
-                const isActive = (p == activeKeyPin);
-                let canInsert = false;
-                let isMiss = false;
-
-                // handle insertion attempt
-                
-                if (isActive && s.upKeyDown) {
-                    if (p.i) {
-                        console.log("NYI: Behavior Undefined!!!");
-                    }
-                    else {
-                        canInsert = isKeyPinInCut(p.a, s.tumblerAngle + p.ca, g.matchTolerance);
-                        isMiss = !canInsert;
-                        p.i = canInsert;
-                        p.a = canInsert ? s.tumblerAngle : p.a; // align if inserted
-                        s.keyPinWasInserted = canInsert;
-                    }
-                }
+                p.a += s.keyPinAngleChange;
 
                 const globalCtx = { c:c, l:l, s:s, g:g };
                 const localCtx = {
                     a: p.a, w: p.w, r: p.r, i: p.i, ca: p.ca,
-                    m: isMiss,
-                    h: isActive };
+                    m: p.m };
 
                 drawPin(globalCtx, localCtx);
             });
@@ -254,15 +222,12 @@
         function drawPin(g, pin) { 
             let keyPinInnerRadius = g.l.tumblerRadius + g.l.tumblerSpacing;
             let keyPinOuterRadius = keyPinInnerRadius + pin.r - 6;
-            let keyPinMiss = false;
 
             if (pin.i) {
                 keyPinInnerRadius = g.l.tumblerRadius - pin.r + 6;
                 keyPinOuterRadius = g.l.tumblerRadius;
 
                 pin.a = g.s.tumblerAngle + pin.ca;
-                
-                g.s.needsRedraw = true; // FIXME
             }
 
             const keyPinGradient = g.c.createRadialGradient(
@@ -698,7 +663,9 @@
                 tumblerTargetVelocity: 0,
                 tumblerVelocity: 0,
                 activeKeyPinIdx: null,
-                keyPinWasInserted: false
+                keyPinAngleChange: 0,
+                setTimeout: htmlDoc.defaultView.setTimeout.bind(htmlDoc.defaultView),
+                wasInserted: false
             };
             const gameConfig = {
                 matchTolerance: (Math.PI / 180) * 5, // 5 degrees
@@ -757,7 +724,6 @@
                     else if (e.key == "ArrowDown") {
                         gameState.downKeyDown = true;
                     }
-                    gameState.needsRedraw = true;
                 },
                 keyUp: (e) => {
                     if (e.key == "ArrowRight") {
@@ -772,7 +738,6 @@
                     else if (e.key == "ArrowDown") {
                         gameState.downKeyDown = false;
                     }
-                    gameState.needsRedraw = true;
                 },
                 mouseMove: (e) => {
                 },
@@ -875,6 +840,7 @@
 
                 gameConfig.keyPins.forEach(p => {
                     // FIXME: Don't mix state with config
+                    // TODO: Validate that these values will fit properly?
                     p.w = p.widthDeg * Math.PI / 180;
                     p.a = p.startDeg * Math.PI / 180;
                     p.r = p.depthPx;
@@ -977,14 +943,60 @@
                 requestAnimationFrame(animationLoop);
             };
 
-            function drawFrame() {
-                // handle insertion success FIXME: Check other stuff here not in drawXXX
+            function handleWinCondition(s, c) {
+                const allPinsInserted = c.keyPins.every(p => p.i);
 
-                if (gameState.keyPinWasInserted && !gameState.upKeyDown) {
-                    gameState.activeKeyPinIdx += 1;
-                    gameState.keyPinWasInserted = false;
-                    gameState.needsRedraw = true;
+                if (allPinsInserted) {
+                    
                 }
+            }
+
+            function handleMovePins(s) {
+                // nudge clockwise or counterclockwise
+
+                if (s.leftKeyDown) {
+                    s.keyPinAngleChange = +0.01 * Math.PI * 2;
+                    s.needsRedraw = true;
+                }
+                else if (s.rightKeyDown) {
+                    s.keyPinAngleChange = -0.01 * Math.PI * 2;
+                    s.needsRedraw = true;
+                }
+            }
+
+            function handlePinInsertionAttempt(s, g) {
+                if (s.upKeyDown) {
+                    const activePin = g.keyPins[s.activeKeyPinIdx];
+
+                    if (activePin) {
+                        if (activePin.i) {
+                        }
+                        else {
+                            canInsert = isKeyPinInCut(
+                                activePin.a,
+                                s.tumblerAngle + activePin.ca,
+                                g.matchTolerance);
+                            activePin.i = canInsert;
+                            activePin.a = canInsert ? s.tumblerAngle : activePin.a; // align if inserted
+                            s.needsRedraw = true;
+                            s.wasInserted = canInsert;
+                        }
+                    }
+                }
+            }
+
+            function handlePinInsertion(s, g) {
+                if (!s.upKeyDown && s.wasInserted) {
+                    s.activeKeyPinIdx += 1;
+                    s.wasInserted = false;
+                }
+            }
+
+            function drawFrame() {
+                handlePinInsertionAttempt(gameState, gameConfig);
+                handlePinInsertion(gameState);
+                handleWinCondition(gameState, gameConfig);
+                handleMovePins(gameState);
 
                 if (gameState.needsRedraw) {
                     const globalCtx = { c: canvasCtx, l: layoutInfo, s: gameState, g: gameConfig };
@@ -1000,14 +1012,10 @@
                     drawPins(canvasCtx, layoutInfo, gameState, gameConfig)
                     drawButtonPanel(canvasCtx, layoutInfo, gameState, gameConfig);
                     
-                    if (gameState.leftKeyDown || gameState.rightKeyDown) {
-                        // don't reset if something is happening
-                        gameState.needsRedraw = true;    
-                    }
-                    else {
-                        gameState.needsRedraw = false;
-                    }
+                    gameState.needsRedraw = false;
                 }
+
+                gameState.keyPinAngleChange = 0;
             }
 
             // game starts here
