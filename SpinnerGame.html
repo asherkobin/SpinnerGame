@@ -164,7 +164,7 @@
 
             c.moveTo(li.tumblerRadius, 0);
 
-            g.keyPins.forEach(p => {
+            s.pinStates.forEach(p => {
                 const startAngle = p.ca;
                 const endAngle = startAngle + p.w;
                 const cutDepth = li.tumblerRadius - p.r;
@@ -195,17 +195,12 @@
         }
 
         function drawPins(c, l, s, g) {
-            const activeKeyPin = g.keyPins[s.activeKeyPinIdx];
-
-            g.keyPins.forEach(p => {
+            s.pinStates.forEach(p => {
                 p.a += s.keyPinAngleChange;
 
                 const globalCtx = { c:c, l:l, s:s, g:g };
-                const localCtx = {
-                    a: p.a, w: p.w, r: p.r, i: p.i, ca: p.ca,
-                    m: p.m };
 
-                drawPin(globalCtx, localCtx);
+                drawPin(globalCtx, p);
             });
         }
 
@@ -219,7 +214,7 @@
             return (Math.abs(angleDistance) < matchTolerance);
         }
 
-        function drawPin(g, pin) { 
+        function drawPin(g, pin) {
             let keyPinInnerRadius = g.l.tumblerRadius + g.l.tumblerSpacing;
             let keyPinOuterRadius = keyPinInnerRadius + pin.r - 6;
 
@@ -252,20 +247,20 @@
 
             g.c.fillStyle = keyPinGradient;
 
-            let startAngle = pin.a;// - l.w / 2;
+            let startAngle = pin.a;
             let endAngle = startAngle + pin.w;
 
             // adjust for padding
 
-            const paddingInRadians = 1 * Math.PI / 180; // one degree
+            const paddingAngle = 1 * Math.PI / 180; // one degree
             
             if (pin.i) {
-                startAngle += 3 * paddingInRadians;
-                endAngle -= 3 * paddingInRadians;
+                startAngle += 3 * paddingAngle;
+                endAngle -= 3 * paddingAngle;
             }
             else {
-                startAngle += 5 * paddingInRadians;
-                endAngle -= 5 * paddingInRadians;
+                startAngle += 5 * paddingAngle;
+                endAngle -= 5 * paddingAngle;
             }
             
             g.c.beginPath();
@@ -277,7 +272,7 @@
             g.c.closePath();
             g.c.stroke();
 
-            if (pin.h) {
+            if (pin == g.s.activePin && !pin.i) {
                 const localCtx = { 
                     sa: startAngle,
                     ea: endAngle,
@@ -659,13 +654,12 @@
                 upKeyDown: false,
                 downKeyDown: false,
                 lastTime: 0,
-                needsRedraw: true,
                 tumblerTargetVelocity: 0,
                 tumblerVelocity: 0,
-                activeKeyPinIdx: null,
                 keyPinAngleChange: 0,
                 setTimeout: htmlDoc.defaultView.setTimeout.bind(htmlDoc.defaultView),
-                wasInserted: false
+                wasInserted: false,
+                pinStates: []
             };
             const gameConfig = {
                 matchTolerance: (Math.PI / 180) * 5, // 5 degrees
@@ -746,7 +740,7 @@
 
                     if (buttonInfo) {
                         buttonInfo.s = "pressed";
-                        gameState.needsRedraw = true;
+                        gameState.needsRedraw = true; // FIXME
                     }
                 },
                 mouseUp: (e) => {
@@ -754,7 +748,7 @@
 
                     if (buttonInfo) {
                         buttonInfo.s = "normal";
-                        gameState.needsRedraw = true;
+                        gameState.needsRedraw = true; // FIXME
                     }
                     
                 },
@@ -830,27 +824,20 @@
             };
 
             function initPins() {
-                const maskCanvas = canvas.ownerDocument.createElement("canvas");
-
-                maskCanvas.width = canvas.width;
-                maskCanvas.height = canvas.height;
-            
-                gameState.maskCanvas = maskCanvas;
-                gameState.activeKeyPinIdx = 0;
-
                 gameConfig.keyPins.forEach(p => {
-                    // FIXME: Don't mix state with config
-                    // TODO: Validate that these values will fit properly?
-                    p.w = p.widthDeg * Math.PI / 180;
-                    p.a = p.startDeg * Math.PI / 180;
-                    p.r = p.depthPx;
-                    p.ca = p.a;
-                    p.i = false;
+                    const pinState = {
+                        w: p.widthDeg * Math.PI / 180,
+                        a: p.startDeg * Math.PI / 180,
+                        r: p.depthPx,
+                        i: false };
+
+                    pinState.ca = pinState.a;
+
+                    gameState.pinStates.push(pinState);
                 });
 
-                drawBackground({
-                    c: maskCanvas.getContext("2d"),
-                    l: layoutInfo });
+                gameState.pinIterator = gameState.pinStates.values();
+                gameState.activePin = gameState.pinIterator.next().value;
             }
 
             function createParticles() {
@@ -915,40 +902,63 @@
             }
 
             function animationLoop(timeStamp) {
-                const deltaTime = timeStamp - gameState.lastTime;
+                const gameCtx = { s: gameState, g: gameConfig };
+                const drawCtx = { c: canvasCtx, l: layoutInfo, s: gameCtx.s, g: gameCtx.g }
+                let needsRedraw = timeStamp == 0;
                 
+                gameState.deltaTime = timeStamp - gameState.lastTime;
                 gameState.lastTime = timeStamp;
+                
+                needsRedraw |= handleRotation(gameCtx);
+                needsRedraw |= handlePinInsertionAttempt(gameState, gameConfig);
+                needsRedraw |= handlePinInsertion(gameState);
+                needsRedraw |= handleWinCondition(gameState, gameConfig);
+                needsRedraw |= handleMovePins(gameState);
 
-                // accelerate toward target velocity
-                if (gameState.tumblerVelocity < gameState.tumblerTargetVelocity) {
-                    // speed up
-                    gameState.tumblerVelocity += gameConfig.tumblerAcceleration * deltaTime;
-                }
-                else if (gameState.tumblerVelocity > gameState.tumblerTargetVelocity) {
-                    // slow down
-                    gameState.tumblerVelocity *= gameConfig.tumblerFriction;
-                }
-
-                if (gameState.tumblerVelocity > 0) {
-                    // stop when very slow
-                    if (gameState.tumblerVelocity < 0.00001) {
-                        gameState.tumblerVelocity = 0;
-                    }
-                    // update angle for drawing
-                    gameState.tumblerAngle += gameState.tumblerVelocity * deltaTime;
-                    gameState.needsRedraw = true;
+                if (needsRedraw) {
+                    drawFrame(drawCtx);
                 }
 
-                drawFrame();
+                gameState.keyPinAngleChange = 0;
+                
                 requestAnimationFrame(animationLoop);
             };
+
+            function handleRotation(ctx) {
+                // accelerate toward target velocity
+                if (ctx.s.tumblerVelocity < ctx.s.tumblerTargetVelocity) {
+                    // speed up
+                    ctx.s.tumblerVelocity += ctx.g.tumblerAcceleration * ctx.s.deltaTime;
+                }
+                else if (ctx.s.tumblerVelocity > ctx.s.tumblerTargetVelocity) {
+                    // slow down
+                    ctx.s.tumblerVelocity *= ctx.g.tumblerFriction;
+                }
+
+                if (ctx.s.tumblerVelocity > 0) {
+                    // stop when very slow
+                    if (ctx.s.tumblerVelocity < 0.00001) {
+                        ctx.s.tumblerVelocity = 0;
+                    }
+                    // update angle for drawing
+                    ctx.s.tumblerAngle += ctx.s.tumblerVelocity * ctx.s.deltaTime;
+                    
+                    return true;
+                }
+
+                return false;
+            }
 
             function handleWinCondition(s, c) {
                 const allPinsInserted = c.keyPins.every(p => p.i);
 
                 if (allPinsInserted) {
-                    
+                    console.log("YOU WIN");
+
+                    return true;
                 }
+
+                return false;
             }
 
             function handleMovePins(s) {
@@ -956,20 +966,23 @@
 
                 if (s.leftKeyDown) {
                     s.keyPinAngleChange = +0.01 * Math.PI * 2;
-                    s.needsRedraw = true;
+                    return true;
                 }
                 else if (s.rightKeyDown) {
                     s.keyPinAngleChange = -0.01 * Math.PI * 2;
-                    s.needsRedraw = true;
+                    return true;
                 }
+
+                return false;
             }
 
             function handlePinInsertionAttempt(s, g) {
                 if (s.upKeyDown) {
-                    const activePin = g.keyPins[s.activeKeyPinIdx];
+                    const activePin = s.activePin;
 
                     if (activePin) {
                         if (activePin.i) {
+                            console.log("PIN ALREADY INSERTED");
                         }
                         else {
                             canInsert = isKeyPinInCut(
@@ -978,48 +991,43 @@
                                 g.matchTolerance);
                             activePin.i = canInsert;
                             activePin.a = canInsert ? s.tumblerAngle : activePin.a; // align if inserted
-                            s.needsRedraw = true;
+                            
                             s.wasInserted = canInsert;
+
+                            return s.wasInserted;
                         }
                     }
                 }
+
+                return false;
             }
 
             function handlePinInsertion(s, g) {
                 if (!s.upKeyDown && s.wasInserted) {
-                    s.activeKeyPinIdx += 1;
+                    s.activePin = s.pinIterator.next().value;
                     s.wasInserted = false;
+                    
+                    return true;
                 }
+
+                return false;
             }
 
-            function drawFrame() {
-                handlePinInsertionAttempt(gameState, gameConfig);
-                handlePinInsertion(gameState);
-                handleWinCondition(gameState, gameConfig);
-                handleMovePins(gameState);
-
-                if (gameState.needsRedraw) {
-                    const globalCtx = { c: canvasCtx, l: layoutInfo, s: gameState, g: gameConfig };
-
-                    drawBackground(globalCtx);
-                    drawTitlePanel(canvasCtx, layoutInfo, gameState);
-                    drawStatusBox(canvasCtx, layoutInfo, gameState);
-                    drawTumbler(canvasCtx, layoutInfo, gameState, gameConfig);
-                    drawScratches(canvasCtx, layoutInfo, gameState);
-                    drawSpots(canvasCtx, layoutInfo, gameState);
-                    drawDial(canvasCtx, layoutInfo, gameState);
-                    drawKeyHole(canvasCtx, layoutInfo, gameState);
-                    drawPins(canvasCtx, layoutInfo, gameState, gameConfig)
-                    drawButtonPanel(canvasCtx, layoutInfo, gameState, gameConfig);
-                    
-                    gameState.needsRedraw = false;
-                }
-
-                gameState.keyPinAngleChange = 0;
+            function drawFrame(globalCtx) {
+                drawBackground(globalCtx);
+                drawTitlePanel(canvasCtx, layoutInfo, gameState);
+                drawStatusBox(canvasCtx, layoutInfo, gameState);
+                drawTumbler(canvasCtx, layoutInfo, gameState, gameConfig);
+                drawScratches(canvasCtx, layoutInfo, gameState);
+                drawSpots(canvasCtx, layoutInfo, gameState);
+                drawDial(canvasCtx, layoutInfo, gameState);
+                drawKeyHole(canvasCtx, layoutInfo, gameState);
+                drawPins(canvasCtx, layoutInfo, gameState, gameConfig)
+                drawButtonPanel(canvasCtx, layoutInfo, gameState, gameConfig);
             }
 
             // game starts here
-
+            
             initPins();
             createParticles();
             setupEventHandlers();
