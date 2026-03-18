@@ -661,7 +661,6 @@
                 setTimeout: htmlDoc.defaultView.setTimeout.bind(htmlDoc.defaultView),
                 wasInserted: false,
                 pinStates: [],
-                resetRequested: false,
                 lastLeftKeyDown: 0,
                 lastRightKeyDown: 0
             };
@@ -683,10 +682,11 @@
                 tryInsertPin: false,
                 startTumbler: false,
                 stopTumbler: false,
+                resetGame: false,
             };
             const gameConfig = {
                 matchTolerance: (Math.PI / 180) * 5, // 5 degrees
-                tumblerVelocity: 0.006283 / 2,
+                tumblerVelocity: 0.006283 / 4, // 1 rev in 2 sec
                 tumblerAcceleration: 0.00001,
                 tumblerFriction: 0.94,
                 numSpots: 10,
@@ -699,11 +699,12 @@
             };
             const soundFactory = {
                 _ctx: new AudioContext(),
+                _loopSrc: null,
                 
                 initBuffers: async function() {
                     this._nudgeBuf = await this._getBuf("Audio/nudge.wav");
                     this._insertBuf = await this._getBuf("Audio/insert2.wav");
-                    this._rotateBuf = await this._getBuf("Audio/rotate.wav");
+                    this._rotateBuf = await this._getBuf("Audio/rotate.try.wav");
                     this._twistBuf = await this._getBuf("Audio/twist.wav");
                     this._errorBuf = await this._getBuf("Audio/error.wav");
                 },
@@ -714,39 +715,14 @@
                         .then(d => { 
                             return this._ctx.decodeAudioData(d); });
                 },
-                _startBufWithFade: function(b, dur) {
-                    const s = this._ctx.createBufferSource();
-                    const g = this._ctx.createGain();
-                    s.buffer = b;
-                    s.loop = true;
-                    s.connect(g);
-                    g.connect(this._ctx.destination);
-                    const fade = 0.01;
-                    const now = this._ctx.currentTime;
-                    g.gain.setValueAtTime(1, now);
-                    //g.gain.setValueAtTime(1, now);
-                    g.gain.linearRampToValueAtTime(0, now + dur);
-                    s.start();
-                },
-                _startBufWithFadeOld: function(b, dur) {
-                    const s = this._ctx.createBufferSource();
-                    const g = this._ctx.createGain();
-                    s.buffer = b;
-                    s.connect(g);
-                    g.connect(this._ctx.destination);
-                    const fade = 0.01;
-                    const now = this._ctx.currentTime;
-                    g.gain.setValueAtTime(1, now);
-                    g.gain.linearRampToValueAtTime(0, now + dur);
-                    s.start(now, 0, dur);
-                },
-                _startBuf: function(b) {
+                _startBuf: function(b, loop = false) {
                     const s = this._ctx.createBufferSource();
                     s.buffer = b;
+                    s.loop = loop;
                     s.connect(this._ctx.destination);
                     s.start();
+                    return s;
                 },
-
                 playNudge: function() {
                     this._startBuf(this._nudgeBuf);
                 },
@@ -756,8 +732,36 @@
                 playError: function() {
                     this._startBuf(this._errorBuf);
                 },
-                playRotate: function () {
-                    this._startBufWithFade(this._rotateBuf, 1.0);
+                stopRotationLoop: function () {
+                    if (this._loopSrc) {
+                        this._loopSrc.stop();
+                        this._loopSrc.playbackRate.linearRampToValueAtTime(0, this._ctx.currentTime + 0.05);
+                        this._loopSrc = null;
+                    }
+                },
+                startRotationLoop: function() {
+                    if (this._loopSrc) {
+                        this._loopSrc.stop();
+                    }
+                    
+                    const s = this._ctx.createBufferSource();
+                    const g = this._ctx.createGain();
+
+                    s.connect(g);
+                    g.connect(this._ctx.destination);
+
+                    s.buffer = this._rotateBuf;
+                    s.loop = true;
+                    s.playbackRate.linearRampToValueAtTime(0, this._ctx.currentTime);
+                    s.start();
+
+                    this._loopSrc = s;
+                },
+                adjustRotationLoop: function(playbackRate) {
+                    if (this._loopSrc != null) {
+                        this._loopSrc.playbackRate.linearRampToValueAtTime(
+                            2 * playbackRate, this._ctx.currentTime + 0.05);
+                    }
                 }
             }
 
@@ -1111,14 +1115,16 @@
                     ctx.s.tumblerTargetVelocity = ctx.c.tumblerVelocity;
                     ctx.l.buttonInfo[1].text = "Stop"; // FIXME
                     ctx.a.startTumbler = false;
-                    ctx.f.playRotate();
-                    return true;
+                    ctx.f.startRotationLoop();
+                    needsRedraw = true;
                 }
                 else if (ctx.a.stopTumbler) {
+                    ctx.s.tumblerVelocity = 0;
                     ctx.s.tumblerTargetVelocity = 0;
                     ctx.l.buttonInfo[1].text = "Start"; // FIXME
                     ctx.a.stopTumbler = false;
-                    return true;
+                    ctx.f.stopRotationLoop();
+                    needsRedraw = true;
                 }
 
                 if (deltaChange != 0) {
@@ -1135,10 +1141,12 @@
             }
 
             function handleReset(ctx) {
-                if (ctx.s.resetRequested) {
+                if (ctx.a.resetGame) {
                     ctx.s.tumblerAngle = 0;
+                    ctx.s.allPinsInserted = false;
                     initPins();
-                    ctx.s.resetRequested = false;
+                    ctx.a.stopTumbler = true;
+                    ctx.a.resetGame = false;
                     return true;
                 }
 
@@ -1148,8 +1156,10 @@
             function handleRotation(ctx) {
                 // accelerate toward target velocity
                 if (ctx.s.tumblerVelocity < ctx.s.tumblerTargetVelocity) {
-                    // speed up
-                    ctx.s.tumblerVelocity += ctx.g.tumblerAcceleration * ctx.s.deltaTime;
+                    // speed up, but not beyond target
+                    ctx.s.tumblerVelocity = Math.min(
+                        ctx.s.tumblerTargetVelocity,
+                        ctx.s.tumblerVelocity + (ctx.g.tumblerAcceleration * ctx.s.deltaTime));
                 }
                 else if (ctx.s.tumblerVelocity > ctx.s.tumblerTargetVelocity) {
                     // slow down
@@ -1163,6 +1173,9 @@
                     }
                     // update angle for drawing
                     ctx.s.tumblerAngle += ctx.s.tumblerVelocity * ctx.s.deltaTime;
+
+                    // update sound speed
+                    ctx.f.adjustRotationLoop((ctx.s.tumblerVelocity * 1000) / (2 * Math.PI));
                     
                     return true;
                 }
@@ -1176,12 +1189,9 @@
 
                     if (allPinsInserted) {
                         console.log("YOU WIN");
-                       // thudSound.currentTime = 0;
-                        //thudSound.play();
-
+                        ctx.a.startTumbler = true;
                         ctx.s.allPinsInserted = true;
-
-                        return false;
+                        return true;
                     }
                 }
 
@@ -1189,7 +1199,7 @@
             }
 
             function handlePinInsertion(s, g) {
-                if (s.wasInserted) {console.log("wasInserted")
+                if (s.wasInserted) {
                     s.activePin = s.pinIterator.next().value;
                     s.wasInserted = false;
                     
