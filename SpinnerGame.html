@@ -24,141 +24,202 @@
         .button:active {
             background-color: #808080;
         }
-        canvas {
-            display: block;
-            border: 1px solid black;
-            margin: auto;
-        }
         body {
             background-color: black;
         }
     </style>
     <body>
         <button id="button" class="button">Connect to Controller</button>
-        <canvas id="canvas" width="350" height="640"></canvas>
     </body>
     <script>
-        function drawKeyHole(c, l, s) {
-            c.save();
-            c.translate(l.x, l.y);
+        function drawKeyWay(c) {
+            c.c.save();
+            c.c.translate(c.l.x, c.l.y + 20);
 
-            let plugGradient = c.createRadialGradient(0, 0, 0, 0, 0, l.keyHoleRadius);
+            if (c.s.allPinsInserted) {
+                c.c.rotate(c.s.tumblerAngle);
+            }
+
+            let plugGradient = c.c.createRadialGradient(0, 0, 0, 0, 0, c.l.keyWayRadius);
             
             plugGradient.addColorStop(0, "#f1c861");
             plugGradient.addColorStop(0.7, "#c9982f");
             plugGradient.addColorStop(1, "#7a5c1a");
 
-            c.beginPath();
-            c.arc(0, 0, l.plugRadius, 0, Math.PI * 2);
-            c.fillStyle = plugGradient;
-            c.fill();
+            c.c.beginPath();
+            c.c.arc(0, 0, c.l.plugRadius, 0, Math.PI * 2);
+            c.c.fillStyle = plugGradient;
+            c.c.fill();
 
-            c.lineWidth = 1;
-            c.strokeStyle = "#6f5724";
-            c.stroke();
+            c.c.lineWidth = 1;
+            c.c.strokeStyle = "#6f5724";
+            c.c.stroke();
 
             // scratches
 
-            c.strokeStyle = "rgba(0,0,0,0.1)";
-            c.lineWidth = 1;
-            
-            l.plugScratchInfo.forEach(s => {
-                c.beginPath();
-                c.arc(0, 0, s.r, s.a, s.a + s.pa);
-                c.stroke();
-            });
+            const surfaceInfo = {
+                x: - (c.l.x),
+                y: - (c.l.y),
+                w: c.l.plugRadius * 2,
+                h: c.l.plugRadius * 2,
+                r: c.l.plugRadius };
+
+            c.c.save();
+            c.c.rotate(2 * Math.PI / 16);
+            c.l.machineSurface(c, surfaceInfo);
+            c.c.restore();
 
             // outline of a key hole
             
-            c.save();
-            c.translate(-8, -38); // convert to percentage
-            c.scale(0.7, 0.7)
-            drawKeyPath(c, l);
-            c.restore();
+            c.c.save();
+            c.c.translate(-8, -38); // convert to percentage
+            c.c.scale(0.7, 0.7)
+            drawKeyPath(c);
+            c.c.restore();
 
-            c.restore();
+            c.c.restore();
         }
 
-        function drawDial(c, li, s) {
-            c.save();
-            c.translate(li.x, li.y);
-            
-            // background
-            let bgGradient = c.createRadialGradient(0, 0, 0, 0, 0, li.dialRadius);
+        function drawTextArc(ctx, text, centerX, centerY, radius, startAngle) {
+            ctx.save();
+            ctx.translate(centerX, centerY);
 
-            bgGradient.addColorStop(0, "#f6d57a");  // light brass
-            bgGradient.addColorStop(0.5, "#d4a73b");
-            bgGradient.addColorStop(1, "#8c6b1f");  // dark brass edge
+            // total width of text
+            let totalWidth = ctx.measureText(text).width;
 
-            c.beginPath();
-            c.arc(0, 0, li.dialRadius, 0, Math.PI * 2);
-            c.fillStyle = bgGradient;
-            c.fill();
-            
-            c.lineWidth = 1;
-            c.strokeStyle = "#6f5418";
-            c.stroke();
+            // convert width to angular width
+            let anglePerPixel = 1 / radius;
+            let totalAngle = totalWidth * anglePerPixel;
 
-            // tick marks
-            let tickCount = 12;
+            // start so text is centered
+            let angle = startAngle - totalAngle / 2;
 
-            c.save();
-            c.rotate(s.tumblerAngle);
-            
-            for (let i = 0; i < tickCount; i++) {
-                let tickAngle = (i / tickCount) * 2 * Math.PI;
-                let innerRadius = li.keyHoleRadius - 8;
-                let outerRadius = li.keyHoleRadius - 1;
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const charWidth = ctx.measureText(char).width;
+                const charAngle = charWidth * anglePerPixel;
 
-                c.save();
-                c.rotate(tickAngle);
-                c.beginPath();
-                c.moveTo(0, innerRadius);
-                c.lineTo(0, outerRadius);
-                c.strokeStyle = "#6e5418";
-                c.lineWidth = 1;
-                c.stroke();
-                c.restore();
+                ctx.save();
+
+                // rotate to character position
+                ctx.rotate(angle + charAngle / 2);
+
+                // move out to radius
+                ctx.translate(0, -radius);
+
+                // draw character centered
+                ctx.strokeText(char, -charWidth / 2, 0);
+
+                ctx.restore();
+
+                angle += charAngle;
             }
 
-            c.restore();
-            c.restore();
+            ctx.restore();
         }
 
-        function drawKeyPath(c, li) {
-            c.beginPath();
+        function drawCylinder(c) {
+            // https://www.directdoorhardware.com/kwikset-deadbolts.htm
+            // polished brass, antique brass, antique nickel, rustic pewter, rustic bronze
+            // venetian bronze, satin nickel, polished chrome, satin chrome, iron black
+            c.c.save();
+            c.c.translate(c.l.x, c.l.y);
+            
+            // rim and background
 
-            c.moveTo(0, 0);
-            c.lineTo(15, 0);
-            c.lineTo(15, 50);
-            c.lineTo(25, 60);
-            c.lineTo(25, 70);
-            c.lineTo(15, 75);
-            c.lineTo(15, 85);
-            c.lineTo(25, 85);
-            c.lineTo(25, 110);
-            c.lineTo(0, 110);
-            c.lineTo(0, 65);
-            c.lineTo(5, 65);
-            c.lineTo(5, 55);
-            c.lineTo(0, 50);
-            c.lineTo(0, 0);
+            c.c.beginPath();
+            c.c.arc(0, 0, c.l.cylinderRadius, 0, Math.PI * 2);
+            c.c.fillStyle = "#c9982f";
+            c.c.fill();
+            c.c.lineWidth = 1;
+            c.c.strokeStyle = "#6f5418";
+            c.c.stroke();
 
-            c.lineWidth = 2;
-            c.strokeStyle = "black";
-            c.stroke();
+            // machining
 
-            c.fillStyle = "#1a1a1a";
-            c.fill();
+            const surfaceInfo = {
+                x: - (c.l.x),
+                y: - (c.l.y),
+                w: c.l.cylinderRadius * 2,
+                h: c.l.cylinderRadius * 2,
+                r: c.l.cylinderRadius };
 
-            c.lineWidth = 1;
-            c.strokeStyle = "#333";
-            c.stroke();
+            c.l.machineSurface(c, surfaceInfo);
+
+            // logo
+
+            const logoW = 75;
+            const logoH = 25;
+            const logoX = - (logoW / 2);
+            const logoY = - (logoH / 2) - 45;
+
+            c.c.translate(logoX, logoY);
+            c.c.font = "bold 24px Gotham";
+            c.c.strokeStyle = "rgba(0, 0, 0, 0.2)";
+            c.c.lineWidth = 1;
+            c.c.textAlign = "center";
+            c.c.strokeText("Kwikset", logoW / 2, logoH - 5);
+            c.c.restore();
+            
+            c.c.restore();
+        }
+
+        function drawTickMarks(c, l) {
+            c.c.save();
+
+            c.c.rotate(l.ra);
+            
+            for (let i = 0; i < l.tc; i++) {
+                const tickAngle = (i / l.tc) * 2 * Math.PI;
+
+                c.c.save();
+                c.c.rotate(tickAngle);
+                c.c.beginPath();
+                c.c.moveTo(0, l.ir);
+                c.c.lineTo(0, l.or);
+                c.c.strokeStyle = "#6e5418";
+                c.c.lineWidth = 1;
+                c.c.stroke();
+                c.c.restore();
+            }
+
+            c.c.restore();
+        }
+
+        function drawKeyPath(c) {
+            c.c.beginPath();
+
+            c.c.moveTo(0, 0);
+            c.c.lineTo(15, 0);
+            c.c.lineTo(15, 50);
+            c.c.lineTo(25, 60);
+            c.c.lineTo(25, 70);
+            c.c.lineTo(15, 75);
+            c.c.lineTo(15, 85);
+            c.c.lineTo(25, 85);
+            c.c.lineTo(25, 110);
+            c.c.lineTo(0, 110);
+            c.c.lineTo(0, 65);
+            c.c.lineTo(5, 65);
+            c.c.lineTo(5, 55);
+            c.c.lineTo(0, 50);
+            c.c.lineTo(0, 0);
+
+            c.c.lineWidth = 2;
+            c.c.strokeStyle = "black";
+            c.c.stroke();
+
+            c.c.fillStyle = "#1a1a1a";
+            c.c.fill();
+
+            c.c.lineWidth = 1;
+            c.c.strokeStyle = "#333";
+            c.c.stroke();
         }
 
         function drawTumbler(c, li, s, g) {
             const tumblerGradient = c.createRadialGradient(
-                li.x, li.y, li.dialRadius, li.x, li.y, li.tumblerRadius);
+                li.x, li.y, li.cylinderRadius, li.x, li.y, li.tumblerRadius);
             
             tumblerGradient.addColorStop(0.00, "#b0811e");
             tumblerGradient.addColorStop(0.20, "#c9982f");
@@ -413,7 +474,7 @@
         function drawStatusBox(c, l, s, g) {
             const sbLeft = 10;
             const sbTop = 90;
-            const sbWidth = canvas.width - 20;
+            const sbWidth = l.w - 20;
             const sbHeight = 80;
             const drawInset = false;
             
@@ -620,28 +681,44 @@
             c.restore();
         }
 
+        function initCanvas(htmlDoc) {
+            const canvasElem = htmlDoc.createElement("canvas");
+            
+            canvasElem.style.display = "block";
+            canvasElem.style.border = "1px solid black";
+            canvasElem.style.margin = "auto";
+            canvasElem.width = 350;
+            canvasElem.height = 640;
+            canvasElem.id = "canvas";
+
+            htmlDoc.body.appendChild(canvasElem);
+
+            return canvasElem;
+        }
+
         async function startGame(htmlDoc) {
-            const canvas = htmlDoc.getElementById("canvas");
-            const canvasCtx = canvas.getContext("2d");
+            const gameWidth = 350;
+            const gameHeight = 640;
+            const canvasElem = initCanvas(htmlDoc, gameWidth, gameHeight);
             const layoutInfo = {
-                c: canvasCtx,
-                w: canvas.width,
-                h: canvas.height,
-                x: canvas.width / 2,
-                y: canvas.height / 2,
+                c: canvasElem.getContext("2d"),
+                w: gameWidth,
+                h: gameHeight,
+                x: gameWidth / 2,
+                y: gameHeight / 2,
                 bh: 75,
                 bw: 150,
                 bpx: 0,
-                bpy: canvas.height - 85,
-                bpw: canvas.width - 20,
+                bpy: gameHeight - 85,
+                bpw: gameWidth - 20,
                 bph: 85,
                 tpx: 10,
                 tpy: 10,
-                tpw: canvas.width - 20,
+                tpw: gameWidth - 20,
                 tph: 85,
-                keyHoleRadius: 70,
+                keyWayRadius: 70,
                 plugRadius: 50,
-                dialRadius: 75,
+                cylinderRadius: 75,
                 tumblerRadius: 130,
                 tumblerSpacing: 10, // space between tumbler and key pin
                 buttonInfo: [
@@ -693,7 +770,7 @@
                 tumblerAcceleration: 0.000002,
                 tumblerFriction: 0.94,
                 numSpots: 10,
-                numScratches: 10,
+                numScratches: 30,
                 keyPins: [
                     { startDeg: 0,   widthDeg: 30, depthPx: 30 },
                     { startDeg: 45,  widthDeg: 20, depthPx: 40 },
@@ -737,8 +814,8 @@
                 },
                 stopRotationLoop: function () {
                     if (this._loopSrc) {
-                        this._loopSrc.stop();
                         this._loopSrc.playbackRate.linearRampToValueAtTime(0, this._ctx.currentTime + 0.05);
+                        this._loopSrc.stop(this._ctx.currentTime + 0.05);
                         this._loopSrc = null;
                     }
                 },
@@ -749,25 +826,67 @@
                     
                     const s = this._ctx.createBufferSource();
                     const g = this._ctx.createGain();
+                    const startTime = this._ctx.currentTime;
+                    const timeToFullSpeed = startTime + 1.0; // FIXME: match when velocity is 100%
 
                     s.connect(g);
                     g.connect(this._ctx.destination);
 
                     s.buffer = this._rotateBuf;
                     s.loop = true;
-                    s.playbackRate.setValueAtTime(0.0, this._ctx.currentTime);
-                    s.playbackRate.linearRampToValueAtTime(1.0, this._ctx.currentTime + 2.0);
+                    
+                    s.playbackRate.setValueAtTime(0.001, startTime); // 0.001 per ChatGPT
+                    s.playbackRate.linearRampToValueAtTime(1.0, timeToFullSpeed);
+
+                    g.gain.setValueAtTime(0, startTime);
+                    g.gain.linearRampToValueAtTime(1, startTime + 0.3);
                     
                     s.start(this._ctx.currentTime);
 
                     this._loopSrc = s;
-                },
-                adjustRotationLoop: function(playbackRate) { return;
-                    if (this._loopSrc != null) {
-                        this._loopSrc.playbackRate.linearRampToValueAtTime(
-                            2 * playbackRate, this._ctx.currentTime + 0.05);
-                    }
                 }
+            }
+
+            layoutInfo.machineSurface = (c, l) => {
+                const clipRadius = l.r;
+                const surfaceX = l.x;
+                const surfaceY = l.y;
+                const surfaceWidth = l.w;
+                const surfaceHeight = l.h;
+
+                c.c.save();
+                c.c.beginPath();
+                c.c.arc(0, 0, clipRadius, 0, Math.PI * 2);
+                c.c.clip();
+
+                for (let i = surfaceX; i < surfaceWidth; i += 5) {
+                    c.c.beginPath();
+                    c.c.moveTo(i + Math.sin(i * 0.02) * 5, surfaceY);
+                    c.c.lineTo(i + Math.sin(i * 0.02) * 5, surfaceHeight);
+                    c.c.strokeStyle = "rgba(0,0,0,0.02)";
+                    c.c.lineWidth = 1;
+                    c.c.stroke();
+                }
+
+                for (let i = surfaceX; i < surfaceWidth; i += 25) {
+                    c.c.beginPath();
+                    c.c.moveTo(i + Math.sin(i * 0.03) * 3, surfaceY);
+                    c.c.lineTo(i + Math.sin(i * 0.03) * 3, surfaceHeight);
+                    c.c.strokeStyle = "rgba(0,0,0,0.03)";
+                    c.c.lineWidth = 1;
+                    c.c.stroke();
+                }
+
+                for (let i = surfaceX; i < surfaceWidth; i += 60) {
+                    c.c.beginPath();
+                    c.c.moveTo(i + Math.sin(i * 0.01) * 7, surfaceY);
+                    c.c.lineTo(i + Math.sin(i * 0.01) * 7, surfaceHeight);
+                    c.c.strokeStyle = "rgba(0,0,0,0.04)";
+                    c.c.lineWidth = 1;
+                    c.c.stroke();
+                }
+
+                c.c.restore();
             }
 
             function gameActionFromCommand(cmd) {
@@ -844,10 +963,11 @@
                     }
                 },
                 _buttonFromHtmlEvent: (e) => {
-                    const canvasRect = canvas.getBoundingClientRect();
+                    const canvasElement = htmlDoc.getElementById("canvas");  // FIXME
+                    const canvasRect = canvasElement.getBoundingClientRect();
                     const x = e.clientX - canvasRect.left;
                     const y = e.clientY - canvasRect.top;
-                    foundButton = null;
+                    let foundButton = null;
                     layoutInfo.buttonInfo.forEach(b => {
                         const bx = layoutInfo.bpx + b.x;
                         const by = layoutInfo.bpy + b.y;
@@ -937,11 +1057,11 @@
                 };
                 
                 for (let i = 0; i < gameConfig.numSpots; i++) {
-                    layoutInfo.spotInfo.push(createParticle(layoutInfo.keyHoleRadius, layoutInfo.tumblerRadius));
+                    layoutInfo.spotInfo.push(createParticle(layoutInfo.keyWayRadius, layoutInfo.tumblerRadius));
                 }
 
                 for (let i = 0; i < gameConfig.numScratches; i++) {
-                    layoutInfo.scratchInfo.push(createParticle(layoutInfo.keyHoleRadius, layoutInfo.tumblerRadius));
+                    layoutInfo.scratchInfo.push(createParticle(layoutInfo.keyWayRadius, layoutInfo.tumblerRadius));
                 }
 
                 for (let i = 0; i < gameConfig.numScratches; i++) {
@@ -992,7 +1112,7 @@
 
             function animationLoop(timeStamp) {
                 const gameCtx = { s: gameState, g: gameConfig, k:keyboardState, a:gameActions, f:soundFactory };
-                const drawCtx = { c: canvasCtx, l: layoutInfo, s: gameCtx.s, g: gameCtx.g }
+                const drawCtx = { c: layoutInfo.c, l: layoutInfo, s: gameCtx.s, g: gameCtx.g } // FIXME
                 const ctx = {
                     s: gameState, l: layoutInfo, f: soundFactory, c: gameConfig,
                     k: keyboardState, a: gameActions, t: timeStamp };
@@ -1119,10 +1239,17 @@
                     return handlePinInsertionAttempt(ctx);
                 }
                 else if (ctx.a.startTumbler) {
-                    ctx.s.tumberStartTime = ctx.s.timeStamp;
+                    ctx.s.targetAngle = null;
                     ctx.s.tumblerTargetVelocity = ctx.c.tumblerVelocity;
                     ctx.l.buttonInfo[1].text = "Stop"; // FIXME
                     ctx.a.startTumbler = false;
+                    ctx.f.startRotationLoop();
+                    needsRedraw = true;
+                }
+                else if (ctx.a.startTumblerToTargetAngle) {
+                    ctx.s.tumblerTargetVelocity = ctx.c.tumblerVelocity;
+                    ctx.l.buttonInfo[1].text = "Stop"; // FIXME
+                    ctx.a.startTumblerToTargetAngle = false;
                     ctx.f.startRotationLoop();
                     needsRedraw = true;
                 }
@@ -1137,12 +1264,12 @@
                 else if (ctx.a.rotateOnce) {
                     ctx.s.targetAngle += (2 * Math.PI);
                     ctx.a.rotateOnce = false;
-                    ctx.a.startTumbler = true;
+                    ctx.a.startTumblerToTargetAngle = true;
                 }
                 else if (ctx.a.rotateNudge) {
-                    ctx.s.targetAngle += (2 * Math.PI) / 8;
+                    ctx.s.targetAngle += (2 * Math.PI) / 8; // TODO: randomize for higher difficulty
                     ctx.a.rotateNudge = false;
-                    ctx.a.startTumbler = true;
+                    ctx.a.startTumblerToTargetAngle = true;
                 }
 
                 if (deltaChange != 0) {
@@ -1158,9 +1285,10 @@
                 return needsRedraw;
             }
 
-            function handleReset(ctx) {
+            function handleReset(ctx) { // TODO: reset all state in a function (initState)
                 if (ctx.a.resetGame) {
                     ctx.s.tumblerAngle = 0;
+                    ctx.s.targetAngle = null;
                     ctx.s.allPinsInserted = false;
                     initPins();
                     ctx.a.stopTumbler = true;
@@ -1192,7 +1320,8 @@
                     // update angle for drawing
                     ctx.s.tumblerAngle += ctx.s.tumblerVelocity * ctx.s.deltaTime;
 
-                    if (ctx.s.targetAngle > 0 && ctx.s.tumblerAngle >= ctx.s.targetAngle) {
+                     // null means no target angle, 0 is a valid angle to rotate to
+                    if (ctx.s.targetAngle != null && ctx.s.tumblerAngle >= ctx.s.targetAngle) {
                         ctx.f.stopRotationLoop();
                         ctx.s.tumblerAngle = ctx.s.targetAngle;
                         ctx.a.stopTumbler = true;
@@ -1209,7 +1338,7 @@
                     const allPinsInserted = ctx.s.pinStates.every(p => p.i);
 
                     if (allPinsInserted) {
-                        ctx.a.rotateOnce = true;
+                        ctx.a.rotateOnce = true; // FIXME: already partially rotated
                         ctx.s.allPinsInserted = true;
                         return true;
                     }
@@ -1248,10 +1377,11 @@
 
                         if (!canInsert) {
                             ctx.f.playError();
+                            //ctx.a.rotateNudge = true; // mean!! - maybe rotate the other way
                         }
                         else if (ctx.s.wasInserted) {
                             ctx.f.playInsert();
-                            ctx.a.rotateNudge = true;
+                            ctx.a.rotateNudge = true; // TODO: Make difficulty setting
                         }
 
                         return ctx.s.wasInserted;
@@ -1262,21 +1392,24 @@
             }
 
             function drawFrame(globalCtx) {
+                const canvasCtx = globalCtx.c; // FIXME
+                
                 drawBackground(globalCtx);
                 drawTitlePanel(canvasCtx, layoutInfo, gameState);
-                drawStatusBox(canvasCtx, layoutInfo, gameState);
+                // drawStatusBox(canvasCtx, layoutInfo, gameState);
+                //drawBoltPanel(globalCtx);
                 drawTumbler(canvasCtx, layoutInfo, gameState, gameConfig);
                 drawScratches(canvasCtx, layoutInfo, gameState);
                 drawSpots(canvasCtx, layoutInfo, gameState);
-                drawDial(canvasCtx, layoutInfo, gameState);
-                drawKeyHole(canvasCtx, layoutInfo, gameState);
+                drawCylinder(globalCtx);
+                drawKeyWay(globalCtx);
                 drawPins(canvasCtx, layoutInfo, gameState, gameConfig)
                 drawButtonPanel(canvasCtx, layoutInfo, gameState, gameConfig);
             }
 
             // game starts here
             
-            soundFactory.initBuffers();
+            await soundFactory.initBuffers(); // await is not ideal here
             initPins();
             createParticles();
             setupEventHandlers();
