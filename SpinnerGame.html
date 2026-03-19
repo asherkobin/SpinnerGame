@@ -654,6 +654,7 @@
             };
             const gameState = {
                 tumblerAngle: 0,
+                targetAngle: 0,
                 lastTime: 0,
                 tumblerTargetVelocity: 0,
                 tumblerVelocity: 0,
@@ -662,7 +663,8 @@
                 wasInserted: false,
                 pinStates: [],
                 lastLeftKeyDown: 0,
-                lastRightKeyDown: 0
+                lastRightKeyDown: 0,
+                allPinsInserted: false
             };
             const keyboardState = {
                 leftKeyDown: false,
@@ -683,11 +685,12 @@
                 startTumbler: false,
                 stopTumbler: false,
                 resetGame: false,
+                rotateOnce: false,
             };
             const gameConfig = {
                 matchTolerance: (Math.PI / 180) * 5, // 5 degrees
-                tumblerVelocity: 0.006283 / 4, // 1 rev in 2 sec
-                tumblerAcceleration: 0.00001,
+                tumblerVelocity: 0.006283 / 2,
+                tumblerAcceleration: 0.000002,
                 tumblerFriction: 0.94,
                 numSpots: 10,
                 numScratches: 10,
@@ -703,7 +706,7 @@
                 
                 initBuffers: async function() {
                     this._nudgeBuf = await this._getBuf("Audio/nudge.wav");
-                    this._insertBuf = await this._getBuf("Audio/insert2.wav");
+                    this._insertBuf = await this._getBuf("Audio/insert.wav");
                     this._rotateBuf = await this._getBuf("Audio/rotate.try.wav");
                     this._twistBuf = await this._getBuf("Audio/twist.wav");
                     this._errorBuf = await this._getBuf("Audio/error.wav");
@@ -752,12 +755,14 @@
 
                     s.buffer = this._rotateBuf;
                     s.loop = true;
-                    s.playbackRate.linearRampToValueAtTime(0, this._ctx.currentTime);
-                    s.start();
+                    s.playbackRate.setValueAtTime(0.0, this._ctx.currentTime);
+                    s.playbackRate.linearRampToValueAtTime(1.0, this._ctx.currentTime + 2.0);
+                    
+                    s.start(this._ctx.currentTime);
 
                     this._loopSrc = s;
                 },
-                adjustRotationLoop: function(playbackRate) {
+                adjustRotationLoop: function(playbackRate) { return;
                     if (this._loopSrc != null) {
                         this._loopSrc.playbackRate.linearRampToValueAtTime(
                             2 * playbackRate, this._ctx.currentTime + 0.05);
@@ -988,7 +993,9 @@
             function animationLoop(timeStamp) {
                 const gameCtx = { s: gameState, g: gameConfig, k:keyboardState, a:gameActions, f:soundFactory };
                 const drawCtx = { c: canvasCtx, l: layoutInfo, s: gameCtx.s, g: gameCtx.g }
-                const ctx = { s: gameState, l: layoutInfo, f: soundFactory, c: gameConfig, k: keyboardState, a: gameActions }
+                const ctx = {
+                    s: gameState, l: layoutInfo, f: soundFactory, c: gameConfig,
+                    k: keyboardState, a: gameActions, t: timeStamp };
                 let needsRedraw = timeStamp == 0;
                 
                 gameState.deltaTime = timeStamp - gameState.lastTime;
@@ -1112,6 +1119,7 @@
                     return handlePinInsertionAttempt(ctx);
                 }
                 else if (ctx.a.startTumbler) {
+                    ctx.s.tumberStartTime = ctx.s.timeStamp;
                     ctx.s.tumblerTargetVelocity = ctx.c.tumblerVelocity;
                     ctx.l.buttonInfo[1].text = "Stop"; // FIXME
                     ctx.a.startTumbler = false;
@@ -1126,9 +1134,19 @@
                     ctx.f.stopRotationLoop();
                     needsRedraw = true;
                 }
+                else if (ctx.a.rotateOnce) {
+                    ctx.s.targetAngle += (2 * Math.PI);
+                    ctx.a.rotateOnce = false;
+                    ctx.a.startTumbler = true;
+                }
+                else if (ctx.a.rotateNudge) {
+                    ctx.s.targetAngle += (2 * Math.PI) / 8;
+                    ctx.a.rotateNudge = false;
+                    ctx.a.startTumbler = true;
+                }
 
                 if (deltaChange != 0) {
-                    //ctx.f.playNudge();
+                    ctx.f.playNudge();
                     ctx.s.keyPinAngleChange = deltaChange * Math.PI * 2;
                     ctx.a.nudgePinL = false;
                     ctx.a.nudgePinR = false;
@@ -1174,9 +1192,12 @@
                     // update angle for drawing
                     ctx.s.tumblerAngle += ctx.s.tumblerVelocity * ctx.s.deltaTime;
 
-                    // update sound speed
-                    ctx.f.adjustRotationLoop((ctx.s.tumblerVelocity * 1000) / (2 * Math.PI));
-                    
+                    if (ctx.s.targetAngle > 0 && ctx.s.tumblerAngle >= ctx.s.targetAngle) {
+                        ctx.f.stopRotationLoop();
+                        ctx.s.tumblerAngle = ctx.s.targetAngle;
+                        ctx.a.stopTumbler = true;
+                    }
+
                     return true;
                 }
 
@@ -1188,8 +1209,7 @@
                     const allPinsInserted = ctx.s.pinStates.every(p => p.i);
 
                     if (allPinsInserted) {
-                        console.log("YOU WIN");
-                        ctx.a.startTumbler = true;
+                        ctx.a.rotateOnce = true;
                         ctx.s.allPinsInserted = true;
                         return true;
                     }
@@ -1217,7 +1237,7 @@
                         console.log("PIN ALREADY INSERTED");
                     }
                     else {
-                        canInsert = isKeyPinInCut(
+                        const canInsert = isKeyPinInCut(
                             ctx.s.activePin.a,
                             ctx.s.tumblerAngle + ctx.s.activePin.ca,
                             ctx.c.matchTolerance);
@@ -1231,6 +1251,7 @@
                         }
                         else if (ctx.s.wasInserted) {
                             ctx.f.playInsert();
+                            ctx.a.rotateNudge = true;
                         }
 
                         return ctx.s.wasInserted;
