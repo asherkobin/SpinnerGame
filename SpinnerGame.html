@@ -51,7 +51,7 @@
             c.c.fillStyle = plugGradient;
             c.c.fill();
 
-            c.c.lineWidth = 1;
+            c.c.lineWidth = 2;
             c.c.strokeStyle = "#6f5724";
             c.c.stroke();
 
@@ -72,8 +72,9 @@
             // outline of a key hole
             
             c.c.save();
-            c.c.translate(-8, -38); // convert to percentage
-            c.c.scale(0.7, 0.7)
+            c.c.translate(5, 35); // FIXME
+            c.c.rotate(Math.PI);
+            c.c.scale(0.5, 0.5)
             drawKeyPath(c);
             c.c.restore();
 
@@ -131,8 +132,8 @@
             c.c.arc(0, 0, c.l.cylinderRadius, 0, Math.PI * 2);
             c.c.fillStyle = "#c9982f";
             c.c.fill();
-            c.c.lineWidth = 1;
-            c.c.strokeStyle = "#6f5418";
+            c.c.lineWidth = 2;
+            c.c.strokeStyle = "#5f4408";
             c.c.stroke();
 
             // machining
@@ -158,7 +159,7 @@
             c.c.strokeStyle = "rgba(0, 0, 0, 0.2)";
             c.c.lineWidth = 1;
             c.c.textAlign = "center";
-            c.c.strokeText("Kwikset", logoW / 2, logoH - 5);
+            c.c.strokeText("Kobin", logoW / 2, logoH - 5);
             c.c.restore();
             
             c.c.restore();
@@ -770,7 +771,7 @@
                 tumblerAcceleration: 0.000002,
                 tumblerFriction: 0.94,
                 numSpots: 10,
-                numScratches: 30,
+                numScratches: 50,
                 keyPins: [
                     { startDeg: 0,   widthDeg: 30, depthPx: 30 },
                     { startDeg: 45,  widthDeg: 20, depthPx: 40 },
@@ -1050,7 +1051,7 @@
                     const r = innerRadius + Math.random() * (outerRadius - innerRadius);
                     const a = Math.random() * Math.PI * 2;
                     const pr = 2 + Math.random() * 2;
-                    const pa = (Math.PI / 64) + Math.random() * 16 * (Math.PI / 64);
+                    const pa = (Math.PI / 64) + Math.random() * 32 * (Math.PI / 64);
                     const f = 0.01 + Math.random() * 0.05;
                     const o = {r:r,a:a,pr:pr,pa:pa,f:f};
                     return o;
