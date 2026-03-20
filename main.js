@@ -1,26 +1,15 @@
-import stateManager from "./modules/state-manager.js";
 import { animationHandler } from "./modules/animation.js";
 import { soundFactory } from "./modules/sound-facotry.js";
 import { connectToController } from "./modules/ble.js";
+import { stateManager } from "./modules/state-manager.js";
 
 document.addEventListener("DOMContentLoaded", () => { startGame(document) });
 
 async function startGame(htmlDoc) {
-    const gameWidth = 350;
-    const gameHeight = 640;
-    const layoutInfo = initLayout(htmlDoc, gameWidth, gameHeight);
-    const gameConfig = initGameConfig();
-    const gameState = initGameState(htmlDoc);
-    const gameActions = initGameActions();
-    const keyboardState = initKeyboardState();
-
-    const ctx = {
-        s: gameState, l: layoutInfo, 
-        f: soundFactory, g: gameConfig,
-        k: keyboardState, a: gameActions };
-
+    
+    const ctx = contextManager.initNew(htmlDoc, stateManager);
+    
     await soundFactory.initBuffers(); // await is not ideal here
-    gameState.initPins(ctx);
     createParticles(ctx);
     initEventHandlers(ctx, htmlDoc);
 
@@ -28,9 +17,33 @@ async function startGame(htmlDoc) {
 }
 
 const contextManager = {
-    initFrom: (ctx) => {
-        this.__ctx = ctx;
+    initNew: (htmlDoc, stateManager) => {
+        const gameWidth = 350;
+        const gameHeight = 640;
+        const layoutInfo = initLayout(htmlDoc, gameWidth, gameHeight);
+        const gameConfig = initGameConfig();
+        const gameActions = initGameActions();
+        const keyboardState = initKeyboardState();
+        const gameState = stateManager.createNewState(gameConfig);
+
+        const ctx = {
+            sm: stateManager,
+            s: gameState,
+            l: layoutInfo, 
+            f: soundFactory,
+            g: gameConfig,
+            k: keyboardState,
+            a: gameActions
+         };
+
+        return ctx;
     },
+
+    createNewState: () => {
+        return stateManager.createNewState(gameConfig)
+    },
+
+    // NYI
     requestState: () => { return this.__ctx.s; },
     requestConfig: () => { return this.__ctx.g; },
     requestLayout: () => { return this.__ctx.l; }
@@ -111,56 +124,6 @@ function initLayout(htmlDoc, gameWidth, gameHeight) {
     };
 }
 
-function initGameState(htmlDoc) {
-    return {
-        tumblerAngle: 0,
-        tumblerTargetAngle: 0,
-        lastTime: 0,
-        tumblerTargetVelocity: 0,
-        tumblerVelocity: 0,
-        keyPinAngleChange: 0,
-        setTimeout: htmlDoc.defaultView.setTimeout.bind(htmlDoc.defaultView),
-        wasInserted: false,
-        pinStates: [],
-        lastLeftKeyDown: 0,
-        lastRightKeyDown: 0,
-        allPinsInserted: false,
-
-        initPins: (ctx) => {
-            ctx.s.pinStates = [];
-            ctx.g.keyPins.forEach(p => {
-                const pinState = {
-                    w: p.widthDeg * Math.PI / 180,
-                    a: p.startDeg * Math.PI / 180,
-                    r: p.depthPx,
-                    i: false };
-
-                pinState.ca = pinState.a;
-
-                ctx.s.pinStates.push(pinState);
-            });
-
-            ctx.s.pinIterator = ctx.s.pinStates.values();
-            ctx.s.activePin = ctx.s.pinIterator.next().value;
-        },
-
-        resetState: (ctx) => { // just recreate state instead
-            ctx.f.stopAll();
-            ctx.l.buttonInfo[1].text = "Start"; // FIXME
-            ctx.s.keyPinAngleChange = 0;
-            ctx.s.tumblerVelocity = 0;
-            ctx.s.tumblerTargetVelocity = null;
-            ctx.s.tumblerAngle = 0;
-            ctx.s.tumblerTargetAngle = null;
-            ctx.s.plugAngle = 0;
-            ctx.s.plugTargetAngle = 0,
-            ctx.s.allPinsInserted = false;
-            ctx.s.initPins(ctx);
-            ctx.a.resetGame = false;
-        }
-    };
-}
-
 function initKeyboardState() {
     return {
         leftKeyDown: false,
@@ -191,7 +154,7 @@ function initGameActions(ctx) {
                 case "Connect":
                     connectToController();
                     break;
-                case "Start":
+                case "Start": console.log("start")
                     this.startTumbler = true;
                     break;
                 case "Stop":

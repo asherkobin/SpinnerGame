@@ -130,7 +130,11 @@ function handleActions(ctx) {
 
 function handleReset(ctx) {
     if (ctx.a.resetGame) {
-        ctx.s.resetState(ctx);
+        ctx.a.resetGame = false;
+        ctx.f.stopAll();
+        ctx.l.buttonInfo[1].text = "Start"; // FIXME
+        //ctx.a.cancelAllActions(); // NYI
+        ctx.s = ctx.sm.createNewState(ctx.g);
         return true;
     }
 

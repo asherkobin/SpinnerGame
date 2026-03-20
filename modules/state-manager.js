@@ -1,24 +1,49 @@
 //
-// TBD
+// state manager
 //
 
 const stateManager = {
-    createStateChange: function() {
-        return "Asher";
+    createNewState: function(gameConfig) {
+        const newState = {
+            tumblerAngle: 0,
+            tumblerTargetAngle: 0,
+            lastTime: 0,
+            tumblerTargetVelocity: 0,
+            tumblerVelocity: 0,
+            keyPinAngleChange: 0,
+            wasInserted: false,
+            pinStates: this._initPinStates(gameConfig.keyPins),
+            lastLeftKeyDown: 0,
+            lastRightKeyDown: 0,
+            allPinsInserted: false,
+            plugAngle: 0,
+            plugTargetAngle: 0,
+            allPinsInserted: false
+        }
+
+        newState.pinIterator = newState.pinStates.values();
+        newState.activePin = newState.pinIterator.next().value;
+
+        return newState;
+    },
+
+    _initPinStates: (pinConfig) => {
+        const pinStates = [];
+
+        pinConfig.forEach(p => {
+            const pinState = {
+                w: p.widthDeg * Math.PI / 180,
+                a: p.startDeg * Math.PI / 180,
+                r: p.depthPx,
+                i: false };
+
+            pinState.ca = pinState.a;
+
+            pinStates.push(pinState);
+        });
+
+        return pinStates;
     }
-};
-/*
-const stateChange = {
-                condition: () => {},
-                conditionMet: false,
-                nextChange
-            }
+}
 
-            const stateManager = {
-                createStateChange: () => {},
-                scheduleStateChange: () => {},
-
-            };
-
-            */
-export default stateManager;
+export { stateManager };
