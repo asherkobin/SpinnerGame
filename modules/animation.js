@@ -6,36 +6,42 @@ import { drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel } fro
 //
 
 const animationHandler = {
-    __ctx: null,
-    
-    initContext: function(ctx) {
+    startAnimationLoop: function(ctx) {
         this.__ctx = ctx;
+        this.__ctx.s.lastTime = 0;
+        this.__animationLoopCallback = this.animationLoop.bind(this);
+
+        this.__animationLoopCallback(0);
     },
 
-    startAnimationLoop: function() {
-        this.animationLoop(0);
-    },
+    stateHandlers: [
+        handleKeyPress,
+        handleActions,
+        handleReset,
+        handleRotation,
+        handleDrawFrame,
+        handlePinInsertion,
+        handleWinCondition
+    ],
     
     animationLoop: function(timeStamp) {
-        let needsRedraw = timeStamp == 0;
-
         this.__ctx.s.timeStamp = timeStamp;
         this.__ctx.s.deltaTime = timeStamp - this.__ctx.s.lastTime;
-        this.__ctx.s.lastTime = timeStamp;
-        
-        needsRedraw |= handleKeyPress(this.__ctx);
-        needsRedraw |= handleActions(this.__ctx);
-        needsRedraw |= handleReset(this.__ctx);
-        needsRedraw |= handleRotation(this.__ctx);
-        needsRedraw |= handleDrawFrame(this.__ctx);
-        needsRedraw |= handlePinInsertion(this.__ctx);
-        needsRedraw |= handleWinCondition(this.__ctx);
+        this.__ctx.s.lastTime = timeStamp; 
+
+        let needsRedraw = (timeStamp == 0);
+
+        for (const stateHandler of this.stateHandlers) {
+            if (stateHandler(this.__ctx)) {
+                needsRedraw = true;
+            }
+        }
 
         if (needsRedraw) {
             this.__drawFrame();
         }
         
-        window.requestAnimationFrame(() => this.animationLoop());
+        window.requestAnimationFrame(this.__animationLoopCallback);
     },
 
     __drawFrame: function() {
@@ -109,7 +115,7 @@ function handleActions(ctx) {
         ctx.a.startTumblerToTargetAngle = true;
     }
 
-    if (deltaChange != 0) { // FIXME
+    if (deltaChange != 0) { // FIXME console
         ctx.f.playNudge();
         ctx.s.keyPinAngleChange = deltaChange * Math.PI * 2;
         ctx.a.nudgePinL = false;
@@ -122,16 +128,9 @@ function handleActions(ctx) {
     return needsRedraw;
 }
 
-function handleReset(ctx) { // TODO: reset all state in a function (initState)
+function handleReset(ctx) {
     if (ctx.a.resetGame) {
-        ctx.s.tumblerAngle = 0;
-        ctx.s.tumblerTargetAngle = null;
-        ctx.s.plugAngle = 0;
-        ctx.s.plugTargetAngle = 0,
-        ctx.s.allPinsInserted = false;
-        initPins();
-        ctx.a.stopTumbler = true;
-        ctx.a.resetGame = false;
+        ctx.s.resetState(ctx);
         return true;
     }
 
@@ -169,14 +168,17 @@ function handleDrawFrame(ctx) {
 }
 
 function handleRotation(ctx) {
+    const state = ctx.s;
+    const current = state.tumblerVelocity;
+    const target = state.tumblerTargetVelocity;
+
     // accelerate toward target velocity
-    if (ctx.s.tumblerVelocity < ctx.s.tumblerTargetVelocity) {
+    if (current < target) {
         // speed up, but not beyond target
-        ctx.s.tumblerVelocity = Math.min(
-            ctx.s.tumblerTargetVelocity,
-            ctx.s.tumblerVelocity + (ctx.g.tumblerAcceleration * ctx.s.deltaTime));
+        ctx.s.tumblerVelocity = Math.min(target,
+            current + (ctx.g.tumblerAcceleration * ctx.s.deltaTime));
     }
-    else if (ctx.s.tumblerVelocity > ctx.s.tumblerTargetVelocity) {
+    else if (current > target) {
         // slow down
         ctx.s.tumblerVelocity *= ctx.g.tumblerFriction;
     }
@@ -190,6 +192,7 @@ function handleRotation(ctx) {
         ctx.s.tumblerAngle += ctx.s.tumblerVelocity * ctx.s.deltaTime;
 
             // null means no target angle, 0 is a valid angle to rotate to
+
         if (ctx.s.tumblerTargetAngle != null && ctx.s.tumblerAngle >= ctx.s.tumblerTargetAngle) {
             ctx.f.stopRotationLoop();
             ctx.s.tumblerAngle = ctx.s.tumblerTargetAngle;
@@ -206,7 +209,7 @@ function handleWinCondition(ctx) {
     if (!ctx.s.allPinsInserted) {
         const allPinsInserted = ctx.s.pinStates.every(p => p.i);
 
-        if (allPinsInserted) {
+        if (allPinsInserted && ctx.s.pinStates.length > 0) {
             ctx.a.rotateOnce = true; // FIXME: already partially rotated
             ctx.s.allPinsInserted = true;
             return true;
@@ -259,6 +262,7 @@ function handlePinInsertionAttempt(ctx) {
                 ctx.s.tumblerAngle + ctx.s.activePin.ca,
                 ctx.g.matchTolerance);
             ctx.s.activePin.i = canInsert;
+
             ctx.s.activePin.a = canInsert ? ctx.s.tumblerAngle : ctx.s.activePin.a; // align if inserted
             
             ctx.s.wasInserted = canInsert;

@@ -20,12 +20,11 @@ async function startGame(htmlDoc) {
         k: keyboardState, a: gameActions };
 
     await soundFactory.initBuffers(); // await is not ideal here
-    initPins(ctx);
+    gameState.initPins(ctx);
     createParticles(ctx);
     initEventHandlers(ctx, htmlDoc);
 
-    animationHandler.initContext(ctx);
-    animationHandler.startAnimationLoop();
+    animationHandler.startAnimationLoop(ctx);
 }
 
 const contextManager = {
@@ -35,24 +34,6 @@ const contextManager = {
     requestState: () => { return this.__ctx.s; },
     requestConfig: () => { return this.__ctx.g; },
     requestLayout: () => { return this.__ctx.l; }
-}
-
-function initPins(ctx) {
-    ctx.s.pinStates = [];
-    ctx.g.keyPins.forEach(p => {
-        const pinState = {
-            w: p.widthDeg * Math.PI / 180,
-            a: p.startDeg * Math.PI / 180,
-            r: p.depthPx,
-            i: false };
-
-        pinState.ca = pinState.a;
-
-        ctx.s.pinStates.push(pinState);
-    });
-
-    ctx.s.pinIterator = ctx.s.pinStates.values();
-    ctx.s.activePin = ctx.s.pinIterator.next().value;
 }
 
 function createParticles(ctx) {
@@ -143,7 +124,40 @@ function initGameState(htmlDoc) {
         pinStates: [],
         lastLeftKeyDown: 0,
         lastRightKeyDown: 0,
-        allPinsInserted: false
+        allPinsInserted: false,
+
+        initPins: (ctx) => {
+            ctx.s.pinStates = [];
+            ctx.g.keyPins.forEach(p => {
+                const pinState = {
+                    w: p.widthDeg * Math.PI / 180,
+                    a: p.startDeg * Math.PI / 180,
+                    r: p.depthPx,
+                    i: false };
+
+                pinState.ca = pinState.a;
+
+                ctx.s.pinStates.push(pinState);
+            });
+
+            ctx.s.pinIterator = ctx.s.pinStates.values();
+            ctx.s.activePin = ctx.s.pinIterator.next().value;
+        },
+
+        resetState: (ctx) => { // just recreate state instead
+            ctx.f.stopAll();
+            ctx.l.buttonInfo[1].text = "Start"; // FIXME
+            ctx.s.keyPinAngleChange = 0;
+            ctx.s.tumblerVelocity = 0;
+            ctx.s.tumblerTargetVelocity = null;
+            ctx.s.tumblerAngle = 0;
+            ctx.s.tumblerTargetAngle = null;
+            ctx.s.plugAngle = 0;
+            ctx.s.plugTargetAngle = 0,
+            ctx.s.allPinsInserted = false;
+            ctx.s.initPins(ctx);
+            ctx.a.resetGame = false;
+        }
     };
 }
 

@@ -28,6 +28,9 @@ const soundFactory = {
         s.start();
         return s;
     },
+    stopAll: function() {
+        this.stopRotationLoop();
+    },
     playNudge: function() {
         this._startBuf(this._nudgeBuf);
     },
