@@ -2,9 +2,10 @@
 
 import RenderManager from "./modules/render-manager.js";
 import SoundFactory from "./modules/sound-factory.js";
-import StateManager from "./modules/state-manager.js";
+import { StateManager } from "./modules/state-manager.js";
 import GameActions from "./modules/game-actions.js";
 import TransitionManager from "./modules/transition-manager.js";
+import { ConfigManager, LayoutFactory } from "./modules/config-manager.js";
 
 document.addEventListener("DOMContentLoaded", () => { startGame(document) });
 
@@ -13,16 +14,18 @@ async function startGame(htmlDoc) {
     const renderManager = new RenderManager();
     const gameActions = new GameActions();
     const soundFactory = new SoundFactory();
-    const gameConfig = new ConfigManager();
+    const configManager = new ConfigManager();
     const transitionManager = new TransitionManager();
+    const layoutFactory = new LayoutFactory();
     
     const contextManager = new ContextManager(
         htmlDoc,
-        gameConfig.getEasy(),
+        configManager,
         stateManager,
         renderManager,
         transitionManager,
         gameActions,
+        layoutFactory,
         soundFactory);
     
     await contextManager.getCtx().f.initBuffers(); // await is not ideal here
@@ -33,21 +36,32 @@ async function startGame(htmlDoc) {
 }
 
 class ContextManager {
-    constructor(htmlDoc, gameConfig, stateManager, renderManager, transitionManager, gameActions, soundFactory) {
+    constructor(
+        htmlDoc,
+        configManager,
+        stateManager,
+        renderManager,
+        transitionManager,
+        gameActions,
+        layoutFactory,
+        soundFactory) {
+
         const gameWidth = 350;
         const gameHeight = 640;
-        const layoutInfo = initLayout(htmlDoc, gameWidth, gameHeight);
-        const keyboardState = initKeyboardState();
-        const gameState = stateManager.createNewState(gameConfig);
+        const layoutInfo = layoutFactory.Create(htmlDoc, gameWidth, gameHeight);
+        const keyboardState = stateManager.createKeyboardState();
+        const gameConfig = configManager.getEasy();
+        const gameState = stateManager.createStateFromConfig(gameConfig);
 
         this._ctx = {
             sm: stateManager,
             rm: renderManager, 
             tm: transitionManager,
+            cm: configManager,
             s: gameState,
             l: layoutInfo, 
             f: soundFactory,
-            g: gameConfig,
+            g: configManager.getEasy(),
             k: keyboardState,
             a: gameActions
          };
@@ -81,88 +95,6 @@ function createParticles(ctx) {
 
     for (let i = 0; i < ctx.g.numScratches; i++) {
         ctx.l.plugScratchInfo.push(createParticle(0, ctx.l.plugRadius));
-    }
-}
-
-function initCanvas(htmlDoc) {
-    const canvasElem = htmlDoc.createElement("canvas");
-    
-    canvasElem.style.display = "block";
-    canvasElem.style.border = "1px solid black";
-    canvasElem.style.margin = "auto";
-    canvasElem.width = 350;
-    canvasElem.height = 640;
-    canvasElem.id = "canvas";
-
-    htmlDoc.body.appendChild(canvasElem);
-
-    return canvasElem;
-}
-
-function initLayout(htmlDoc, gameWidth, gameHeight) {
-    const canvasElem = initCanvas(htmlDoc);
-    const htmlClientRect = canvasElem.getBoundingClientRect();
-
-    return {
-        c: canvasElem.getContext("2d"),
-        htmlClientRect: htmlClientRect, // FIXME
-        w: gameWidth,
-        h: gameHeight,
-        x: gameWidth / 2,
-        y: gameHeight / 2,
-        bh: 75,
-        bw: 150,
-        bpx: 0,
-        bpy: gameHeight - 85,
-        bpw: gameWidth - 20,
-        bph: 85,
-        tpx: 10,
-        tpy: 10,
-        tpw: gameWidth - 20,
-        tph: 85,
-        keywayRadius: 70,
-        plugRadius: 50,
-        cylinderRadius: 75,
-        tumblerRadius: 130,
-        tumblerSpacing: 10, // space between tumbler and key pin
-        buttonInfo: [
-            { text: "Connect", s: "normal" },
-            { text: "Start", s: "normal" },
-            { text: "...",  s: "normal" } ],
-        spotInfo: [],
-        scratchInfo: [],
-        plugScratchInfo: []
-    };
-}
-
-function initKeyboardState() {
-    return {
-        leftKeyDown: false,
-        rightKeyDown: false,
-        upKeyDown: false,
-        downKeyDown: false,
-        lastLeftKeyPress: 0,
-        lastRightKeyPress: 0,
-        lastUpKeyPress: 0,
-        lastDownKeyPress: 0
-    };
-}
-
-class ConfigManager {
-    getEasy() {
-        return {
-            matchTolerance: (Math.PI / 180) * 5, // 5 degrees
-            tumblerVelocity: 0.006283 / 2,
-            tumblerAcceleration: 0.000002,
-            tumblerFriction: 0.94,
-            numSpots: 10,
-            numScratches: 50,
-            keyPins: [
-                { startDeg: 0,   widthDeg: 30, depthPx: 30 },
-                { startDeg: 45,  widthDeg: 20, depthPx: 40 },
-                { startDeg: 200, widthDeg: 50, depthPx: 20 }
-            ]
-        };
     }
 }
 

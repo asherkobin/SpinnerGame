@@ -23,7 +23,7 @@ export default class GameActions {
         this._ctx.f.stopAll();
         this._ctx.l.buttonInfo[1].text = "Start"; // FIXME
         this._ctx.tm.removeAll();
-        this._ctx.s = this._ctx.sm.createNewState(this._ctx.g);
+        this._ctx.s = this._ctx.sm.createStateFromConfig(this._ctx.g);
     }
     startTumbler() {
         this._ctx.s.ttid = this._ctx.tm.createRotatingTransiton(

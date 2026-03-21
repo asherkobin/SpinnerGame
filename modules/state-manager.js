@@ -1,26 +1,36 @@
+/** @typedef {import("./types.js").State} State */
+/** @typedef {import("./types.js").Config} Config */
+/** @typedef {import("./types.js").KeyboardState} KeyboardState */
+
 //
 // state manager
 //
 
-export default class StateManager {
-    createNewState(gameConfig) {
+class StateManager {
+    /**
+     * Creates New State
+     * 
+     * @param {Config} gameConfig 
+     */
+    createStateFromConfig(gameConfig) {
+        const pinStates = this._initPinStates(gameConfig.keyPins);
+
+        /** @type {State} */
         const newState = {
             tumblerAngle: 0,
-            tumblerTargetAngle: 0,
             lastTime: 0,
-            tumblerVelocity: 0,
             pinDeltaAngle: 0,
-            wasInserted: false,
-            pinStates: this._initPinStates(gameConfig.keyPins),
+            pinStates: pinStates,
             lastLeftKeyDown: 0,
             lastRightKeyDown: 0,
             allPinsInserted: false,
             plugAngle: 0,
-            allPinsInserted: false,
             needsRedraw: true,
+            pinIterator: null,
+            activePin: null
         }
 
-        newState.pinIterator = newState.pinStates.values();
+        newState.pinIterator = pinStates.values();
         newState.activePin = newState.pinIterator.next().value;
 
         return newState;
@@ -47,4 +57,21 @@ export default class StateManager {
 
         return pinStates;
     }
+
+    createKeyboardState() {
+        /** @type {KeyboardState} */
+        const keyboardState = {
+            leftKeyDown: false,
+            rightKeyDown: false,
+            upKeyDown: false,
+            downKeyDown: false,
+            lastLeftKeyPress: 0,
+            lastRightKeyPress: 0,
+            lastUpKeyPress: 0,
+            lastDownKeyPress: 0 };
+
+        return keyboardState;
+    }
 }
+
+export { StateManager }

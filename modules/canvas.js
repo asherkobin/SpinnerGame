@@ -1,3 +1,5 @@
+/** @typedef {import("./types.js").Context} Context */
+
 //
 // canvas draw routines
 //
@@ -418,15 +420,20 @@ function drawRadialArrow(g, l) {
     ctx.fill();
 }
 
+/**
+ * Draws Wood Paneling
+ * 
+ * @param {Context} c 
+ */
 function drawBackground(c) {
     const ctx = c.l.c;
     const width = c.l.w;
     const height = c.l.h;
     let gr = ctx.createLinearGradient(0, 0, 0, height);
     
-    gr.addColorStop(0, "#5a3b23");
-    gr.addColorStop(0.5, "#4a2f1d");
-    gr.addColorStop(1, "#3a2416");
+    gr.addColorStop(0, c.cm.getColors().LightBrown);
+    gr.addColorStop(0.5, c.cm.getColors().MediumBrown);
+    gr.addColorStop(1, c.cm.getColors().DarkBrown);
     ctx.fillStyle = gr;
     ctx.fillRect(0, 0, width, height);
 
