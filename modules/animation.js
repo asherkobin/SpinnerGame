@@ -1,17 +1,137 @@
 import { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler } from "./draw.js";
 import { drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel } from "./draw.js"
 
+class transitionManager {
+    _transitionList = [];
+
+    _normalizeAngle(a) {
+        const tau = 2 * Math.PI;
+        if (a > tau) {
+            a = ((a % tau) + tau) % tau;
+        }
+        return a;
+    };
+
+    createLinearTransiton(updateFn, startValue, targetValue, durationTime, completionFn) { 
+        const linearTransition = {
+            updateFn: updateFn,
+            startValue: startValue,
+            targetValue: targetValue,
+            durationTime: durationTime,
+            startTime: 0,
+            endTime: 0,
+            completionProgress: 0,
+            isCompleted: false,
+            completionFn: completionFn,
+            currentValue: startValue,
+            actualEndTime: 0,
+            linearVelocity: 0,
+            angularVelocity: 0,
+            previousValue: 0,
+            __uid: crypto.randomUUID
+        };
+
+        this._transitionList.push(linearTransition);
+
+        return linearTransition.__uid;
+    };
+
+    createRotatingTransiton(updateFn, startValue, radiansPerMillisecond) {
+        const rotatingTransition = {
+            updateFn: updateFn,
+            startValue: startValue,
+            targetValue: 0,
+            durationTime: 0,
+            startTime: 0,
+            endTime: 0,
+            completionProgress: 0,
+            isCompleted: false,
+            completionFn: null,
+            currentValue: startValue,
+            actualEndTime: 0,
+            linearVelocity: 0,
+            angularVelocity: radiansPerMillisecond,
+            previousValue: 0,
+            __uid: crypto.randomUUID
+        };
+
+        this._transitionList.push(rotatingTransition);
+
+        return rotatingTransition.__uid;
+    };
+
+    stopAndRemove(tid) {
+        const t = this._transitionList.find(t => t.__uid === tid);
+
+        this._transitionList = this._transitionList.filter(i => i.__uid !== tid);
+    }
+
+    handleTimeChange(timeStamp) {
+        this._transitionList.forEach(t => {
+            if (!t.isCompleted) {
+                if (t.startTime == 0) {
+                    t.startTime = timeStamp;
+
+                    if (t.durationTime != 0) {
+                        t.endTime = t.startTime + t.durationTime;
+                    }
+                }
+
+                const deltaTime = timeStamp - t.startTime;
+                const durationTime = t.endTime - t.startTime;
+
+                // infinite
+                if (t.endTime == 0) {
+                    if (t.angularVelocity != 0) {
+                        const n = t.startValue + (t.angularVelocity * deltaTime);
+
+                        t.previousValue = t.currentValue;
+                        t.currentValue = this._normalizeAngle(n);
+                    }
+                    else if (t.linearVelocity > 0) {
+                        console.log("NYI");
+                    }
+
+                    t.updateFn(t.currentValue);
+                }
+                // time expired
+                else if (timeStamp >= t.endTime) {
+                    t.actualEndTime = timeStamp;
+                    t.completionProgress = 1;
+                    t.previousValue = t.currentValue;
+                    t.currentValue = t.targetValue;
+                    t.isCompleted = true;
+                    
+                    t.updateFn(t.currentValue);
+                    t.completionFn();
+                }
+                // linear increment
+                else {
+                    t.completionProgress = deltaTime / durationTime;
+                    t.previousValue = t.currentValue;
+                    t.currentValue = t.targetValue * t.completionProgress;
+
+                    t.updateFn(t.currentValue);
+                }
+            }
+        });
+    };
+}
+
 //
 // main animation loop and various handlers
 //
 
 const animationHandler = {
     startAnimationLoop: function(ctx) {
-        this.__ctx = ctx;
-        this.__ctx.s.lastTime = 0;
-        this.__animationLoopCallback = this.animationLoop.bind(this);
+        ctx.tm = new transitionManager();
+        
+        this._ctx = ctx;
+        this._ctx.s.lastTime = 0;
+        this._animationLoopCallback = this.animationLoop.bind(this);
+        this._ctx.s.needsRedraw = true;
 
-        this.__animationLoopCallback(0);
+        window.requestAnimationFrame(this._animationLoopCallback)
     },
 
     stateHandlers: [
@@ -25,35 +145,34 @@ const animationHandler = {
     ],
     
     animationLoop: function(timeStamp) {
-        this.__ctx.s.timeStamp = timeStamp;
-        this.__ctx.s.deltaTime = timeStamp - this.__ctx.s.lastTime;
-        this.__ctx.s.lastTime = timeStamp; 
-
-        let needsRedraw = (timeStamp == 0);
+        this._ctx.s.timeStamp = timeStamp;
+        this._ctx.s.deltaTime = timeStamp - this._ctx.s.lastTime;
+        this._ctx.s.lastTime = timeStamp; 
 
         for (const stateHandler of this.stateHandlers) {
-            if (stateHandler(this.__ctx)) {
-                needsRedraw = true;
-            }
+            stateHandler(this._ctx);
         }
 
-        if (needsRedraw) {
-            this.__drawFrame();
+        this._ctx.tm.handleTimeChange(timeStamp);
+
+        if (this._ctx.s.needsRedraw) {
+            this._drawFrame();
+            this._ctx.s.needsRedraw = false;
         }
         
-        window.requestAnimationFrame(this.__animationLoopCallback);
+        window.requestAnimationFrame(this._animationLoopCallback);
     },
 
-    __drawFrame: function() {
-        drawBackground(this.__ctx);
-        drawTitlePanel(this.__ctx);
-        drawStatusBox(this.__ctx);
-        drawTumbler(this.__ctx);
-        drawScratches(this.__ctx);
-        drawSpots(this.__ctx);
-        drawCylinder(this.__ctx);
-        drawPins(this.__ctx)
-        drawButtonPanel(this.__ctx);
+    _drawFrame: function() {
+        drawBackground(this._ctx);
+        drawTitlePanel(this._ctx);
+        drawStatusBox(this._ctx);
+        drawTumbler(this._ctx);
+        drawScratches(this._ctx);
+        drawSpots(this._ctx);
+        drawCylinder(this._ctx);
+        drawPins(this._ctx)
+        drawButtonPanel(this._ctx);
     }
 }
 
@@ -64,49 +183,53 @@ function handleActions(ctx) {
     // checks the ctx.a flags and changes state if needed
 
     if (ctx.a.nudgePlug) {
+        ctx.a.nudgePlug = false;
         needsRedraw |= handleNudgePlug(ctx);
     }
     if (ctx.a.nudgePinL) {
+        ctx.a.nudgePinL = false;
         deltaChange = 0.005;
     }
     else if (ctx.a.nudgePinR) {
+        ctx.a.nudgePinR = false;
         deltaChange = -0.005;
     }
     else if (ctx.a.movePinL) {
+        ctx.movePinL = false;
         deltaChange = 0.01;
     }
     else if (ctx.a.movePinR) {
+        ctx.movePinR = false;
         deltaChange = -0.01;
     }
     else if (ctx.a.tryInsertPin) {
+        ctx.a.tryInsertPin = false;
         return handlePinInsertionAttempt(ctx);
     }
     else if (ctx.a.startTumbler) {
-        ctx.s.tumblerTargetAngle = null;
-        ctx.s.tumblerTargetVelocity = ctx.g.tumblerVelocity;
-        ctx.l.buttonInfo[1].text = "Stop"; // FIXME
         ctx.a.startTumbler = false;
-        ctx.f.startRotationLoop();
-        needsRedraw = true;
-    }
-    else if (ctx.a.startTumblerToTargetAngle) {
-        ctx.s.tumblerTargetVelocity = ctx.g.tumblerVelocity;
+        
+        ctx.s.ttid = ctx.tm.createRotatingTransiton(
+            (v) => { ctx.s.tumblerAngle = v; ctx.s.needsRedraw = true; },
+            ctx.s.tumblerAngle,
+            ctx.g.tumblerVelocity);
+
         ctx.l.buttonInfo[1].text = "Stop"; // FIXME
-        ctx.a.startTumblerToTargetAngle = false;
         ctx.f.startRotationLoop();
         needsRedraw = true;
     }
     else if (ctx.a.stopTumbler) {
-        ctx.s.tumblerVelocity = 0;
-        ctx.s.tumblerTargetVelocity = 0;
-        ctx.l.buttonInfo[1].text = "Start"; // FIXME
         ctx.a.stopTumbler = false;
+        
+        ctx.tm.stopAndRemove(ctx.s.ttid);
+
+        ctx.l.buttonInfo[1].text = "Start"; // FIXME
         ctx.f.stopRotationLoop();
         needsRedraw = true;
     }
     else if (ctx.a.rotateOnce) {
-        ctx.s.tumblerTargetAngle += (2 * Math.PI);
         ctx.a.rotateOnce = false;
+        ctx.s.tumblerTargetAngle += (2 * Math.PI);
         ctx.a.startTumblerToTargetAngle = true;
     }
     else if (ctx.a.rotateNudge) {
@@ -118,14 +241,12 @@ function handleActions(ctx) {
     if (deltaChange != 0) { // FIXME console
         ctx.f.playNudge();
         ctx.s.keyPinAngleChange = deltaChange * Math.PI * 2;
-        ctx.a.nudgePinL = false;
-        ctx.a.nudgePinR = false;
-        ctx.a.movePinL = false;
-        ctx.a.movePinR = false;
         needsRedraw = true;
     }
 
-    return needsRedraw;
+    if (needsRedraw) {
+        ctx.requestRedraw();
+    }
 }
 
 function handleReset(ctx) {
@@ -203,10 +324,8 @@ function handleRotation(ctx) {
             ctx.a.stopTumbler = true;
         }
 
-        return true;
+        ctx.requestRedraw();
     }
-
-    return false;
 }
 
 function handleWinCondition(ctx) {
@@ -253,8 +372,6 @@ function handlePinInsertionAttempt(ctx) {
 
         return (Math.abs(angleDistance) < matchTolerance);
     }
-
-    ctx.a.tryInsertPin = false;
     
     if (ctx.s.activePin) {
         if (ctx.s.activePin.i) {

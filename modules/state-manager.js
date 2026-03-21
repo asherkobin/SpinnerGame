@@ -18,7 +18,8 @@ const stateManager = {
             allPinsInserted: false,
             plugAngle: 0,
             plugTargetAngle: 0,
-            allPinsInserted: false
+            allPinsInserted: false,
+            needsRedraw: true,
         }
 
         newState.pinIterator = newState.pinStates.values();

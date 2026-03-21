@@ -1,3 +1,5 @@
+"use strict";
+
 import { animationHandler } from "./modules/animation.js";
 import { soundFactory } from "./modules/sound-facotry.js";
 import { connectToController } from "./modules/ble.js";
@@ -6,7 +8,6 @@ import { stateManager } from "./modules/state-manager.js";
 document.addEventListener("DOMContentLoaded", () => { startGame(document) });
 
 async function startGame(htmlDoc) {
-    
     const ctx = contextManager.initNew(htmlDoc, stateManager);
     
     await soundFactory.initBuffers(); // await is not ideal here
@@ -33,7 +34,8 @@ const contextManager = {
             f: soundFactory,
             g: gameConfig,
             k: keyboardState,
-            a: gameActions
+            a: gameActions,
+            requestRedraw: () => { gameState.__needsRedraw = true; }
          };
 
         return ctx;
@@ -154,7 +156,7 @@ function initGameActions(ctx) {
                 case "Connect":
                     connectToController();
                     break;
-                case "Start": console.log("start")
+                case "Start":
                     this.startTumbler = true;
                     break;
                 case "Stop":
