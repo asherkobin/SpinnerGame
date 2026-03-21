@@ -8,7 +8,6 @@ export default class StateManager {
             tumblerAngle: 0,
             tumblerTargetAngle: 0,
             lastTime: 0,
-            tumblerTargetVelocity: 0,
             tumblerVelocity: 0,
             pinDeltaAngle: 0,
             wasInserted: false,
@@ -17,7 +16,6 @@ export default class StateManager {
             lastRightKeyDown: 0,
             allPinsInserted: false,
             plugAngle: 0,
-            plugTargetAngle: 0,
             allPinsInserted: false,
             needsRedraw: true,
         }
@@ -26,6 +24,10 @@ export default class StateManager {
         newState.activePin = newState.pinIterator.next().value;
 
         return newState;
+    }
+
+    nextPin(state) {
+        return state.pinIterator.next().value;
     }
 
     _initPinStates(pinConfig) {

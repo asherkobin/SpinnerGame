@@ -19,10 +19,7 @@ export default class RenderManager {
     }
 
     stateHandlers = [
-        this.handleKeyPress,
-        this.handleActions,
-        this.handleDrawFrame,
-        this.handlePinInsertion,
+        this.handleUserInput,
         this.handleWinCondition ];
     
     animationLoop(timeStamp) {
@@ -37,14 +34,14 @@ export default class RenderManager {
         this._ctx.tm.handleTimeChange(deltaTime);
 
         if (this._ctx.s.needsRedraw) {
-            this._drawFrame();
+            this._renderFrame();
             this._ctx.s.needsRedraw = false;
         }
         
         window.requestAnimationFrame(this._animationLoopCallback);
     }
 
-    _drawFrame() {
+    _renderFrame() {
         drawBackground(this._ctx);
         drawTitlePanel(this._ctx);
         drawStatusBox(this._ctx);
@@ -54,66 +51,6 @@ export default class RenderManager {
         drawCylinder(this._ctx);
         drawPins(this._ctx)
         drawButtonPanel(this._ctx);
-    }
-
-    handleActions(ctx) {
-        let needsRedraw = false;
-        let deltaChange = 0;
-
-        // checks the ctx.a flags and changes state if needed
-
-        if (ctx.a.nudgePlug) {
-            ctx.a.nudgePlug = false;
-            needsRedraw |= handleNudgePlug(ctx);
-        }
-        
-        
-        
-        else if (ctx.a.rotateNudge) {
-            //ctx.s.tumblerTargetAngle += (2 * Math.PI) / 8; // TODO: randomize for higher difficulty
-            ctx.a.rotateNudge = false;
-            ctx.a.startTumblerToTargetAngle = true;
-        }
-
-        if (deltaChange != 0) { // FIXME console
-            
-            //ctx.s.keyPinAngleChange = deltaChange * Math.PI * 2;
-            needsRedraw = true;
-        }
-
-        if (needsRedraw) {
-            ctx.requestRedraw();
-        }
-    }
-
-    handleDrawFrame(ctx) {
-        if (ctx.s.plugTargetAngle) {
-            const deltaChange = 0.03; // speed
-            if (ctx.s.plugTargetAngle > 0) {
-                ctx.s.plugAngle += (ctx.s.plugAngleDir * deltaChange);
-
-                if (ctx.s.plugAngle >= ctx.s.plugTargetAngle) {
-                    // reverse direction
-                    ctx.s.plugTargetAngle = -ctx.s.plugTargetAngle;
-                    ctx.s.plugAngleDir = -1;
-                }
-                
-                return true;
-            }
-            else if (ctx.s.plugTargetAngle < 0) {
-                ctx.s.plugAngle += (ctx.s.plugAngleDir * deltaChange);
-
-                if (ctx.s.plugAngle <= ctx.s.plugTargetAngle) {
-                    // return to 0, in dir = 1, but stop then
-                    ctx.s.plugAngle = 0;
-                    ctx.s.plugTargetAngle = null;
-                }
-
-                return true;
-            }
-        }
-
-        return false;
     }
 
     handleWinCondition(ctx) {
@@ -127,23 +64,7 @@ export default class RenderManager {
         }
     }
 
-    handlePinInsertion(ctx) {
-        if (ctx.s.wasInserted) {
-            ctx.s.activePin = ctx.s.pinIterator.next().value;
-            ctx.s.wasInserted = false;
-        }
-    }
-
-    handleNudgePlug(ctx) {
-        ctx.s.plugAngle = 0;
-        ctx.s.plugTargetAngle = Math.PI / 8;
-        ctx.s.plugAngleDir = 1;
-        ctx.a.nudgePlug = false;
-
-        return true;
-    }
-
-    handleKeyPress(ctx) {
+    handleUserInput(ctx) {
         let timeDelta = 0;
         
         if (ctx.k.leftKeyDown) {

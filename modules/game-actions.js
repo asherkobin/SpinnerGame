@@ -39,7 +39,7 @@ export default class GameActions {
         this._ctx.l.buttonInfo[1].text = "Start"; // FIXME
         this._ctx.f.stopRotationLoop();
     }
-    movePin(deltaAngle) {xxx
+    animatePin(deltaAngle) {
         this._ctx.tm.createLinearTransiton(
             (v) => { this._ctx.s.keyPinAngle = v; this._ctx.s.needsRedraw = true; },
             this._ctx.s.keyPinAngle,
@@ -58,6 +58,23 @@ export default class GameActions {
             2000,
             () => { console.log("rotateOnce complete"); });
     }
+    shakeKeyPlug() {
+        this._ctx.tm.createLinearTransiton(
+            (v) => { this._ctx.s.plugAngle = v; this._ctx.s.needsRedraw = true;},
+            this._ctx.s.plugAngle,
+            this._ctx.s.plugAngle + 2 * Math.PI / 16,
+            100,
+            () => this._ctx.tm.createLinearTransiton(
+                (v) => { this._ctx.s.plugAngle = v; this._ctx.s.needsRedraw = true;},
+                this._ctx.s.plugAngle,
+                this._ctx.s.plugAngle - 4 * Math.PI / 16,
+                200,
+                () => this._ctx.tm.createLinearTransiton(
+                    (v) => { this._ctx.s.plugAngle = v; this._ctx.s.needsRedraw = true;},
+                    this._ctx.s.plugAngle,
+                    this._ctx.s.plugAngle + 2 * Math.PI / 16,
+                    100)));
+    }
     tryInsertPin() {
         function isKeyPinInCut (keyPinAngle, tumblerAngle, matchTolerance) {
             let angleDistance = keyPinAngle - tumblerAngle;
@@ -73,6 +90,7 @@ export default class GameActions {
         const config = this._ctx.g;
         const activePin = state.activePin;
         const sfx = this._ctx.f;
+        const sm = this._ctx.sm;
     
         if (state.activePin) {
             if (state.activePin.i) {
@@ -87,13 +105,19 @@ export default class GameActions {
                 activePin.i = canInsert;
                 activePin.a = canInsert ? state.tumblerAngle : activePin.a; // align if inserted
                 
-                state.wasInserted = canInsert;
-
-                if (!canInsert) {
-                    sfx.playError();
-                }
-                else if (state.wasInserted) {
+                if (canInsert) {
                     sfx.playInsert();
+                    state.activePin = sm.nextPin(state);
+
+                    if (state.activePin) {
+                        this.shakeKeyPlug();
+                    }
+                    else {
+                        // AKA allPinsInserted
+                    }
+                }
+                else {
+                    sfx.playError();
                 }
 
                 state.needsRedraw = true;;
