@@ -2,52 +2,62 @@
 // sfx creation routines
 //
 
-const soundFactory = {
-    _ctx: new AudioContext(),
-    _loopSrc: null,
+export default class SoundFactory {
+    _ctx = new AudioContext();
+    _loopSrc = null;
     
-    initBuffers: async function() {
+    async initBuffers() {
         this._nudgeBuf = await this._getBuf("Audio/nudge.wav");
         this._insertBuf = await this._getBuf("Audio/insert.wav");
         this._rotateBuf = await this._getBuf("Audio/rotate.try.wav");
         this._twistBuf = await this._getBuf("Audio/twist.wav");
         this._errorBuf = await this._getBuf("Audio/error.wav");
-    },
-    _getBuf: function (localPath) {
+    }
+    
+    _getBuf(localPath) {
         return fetch(localPath)
             .then(r => {
                 return r.arrayBuffer(); })
             .then(d => { 
                 return this._ctx.decodeAudioData(d); });
-    },
-    _startBuf: function(b, loop = false) {
+    }
+
+    _startBuf(b, loop = false) {
         const s = this._ctx.createBufferSource();
+        
         s.buffer = b;
         s.loop = loop;
         s.connect(this._ctx.destination);
         s.start();
+        
         return s;
-    },
-    stopAll: function() {
+    }
+    
+    stopAll() {
         this.stopRotationLoop();
-    },
-    playNudge: function() {
+    }
+    
+    playNudge() {
         this._startBuf(this._nudgeBuf);
-    },
-    playInsert: function() {
+    }
+    
+    playInsert() {
         this._startBuf(this._insertBuf);
-    },
-    playError: function() {
+    }
+    
+    playError() {
         this._startBuf(this._errorBuf);
-    },
-    stopRotationLoop: function () {
+    }
+    
+    stopRotationLoop() {
         if (this._loopSrc) {
             this._loopSrc.playbackRate.linearRampToValueAtTime(0, this._ctx.currentTime + 0.05);
             this._loopSrc.stop(this._ctx.currentTime + 0.05);
             this._loopSrc = null;
         }
-    },
-    startRotationLoop: function() {
+    }
+    
+    startRotationLoop() {
         if (this._loopSrc) {
             this._loopSrc.stop();
         }
@@ -74,5 +84,3 @@ const soundFactory = {
         this._loopSrc = s;
     }
 }
-
-export { soundFactory };

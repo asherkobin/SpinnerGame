@@ -1,56 +1,63 @@
 "use strict";
 
-import { animationHandler } from "./modules/animation.js";
-import { soundFactory } from "./modules/sound-facotry.js";
-import { connectToController } from "./modules/ble.js";
-import { stateManager } from "./modules/state-manager.js";
+import RenderManager from "./modules/render-manager.js";
+import SoundFactory from "./modules/sound-factory.js";
+import StateManager from "./modules/state-manager.js";
+import GameActions from "./modules/game-actions.js";
+import TransitionManager from "./modules/transition-manager.js";
 
 document.addEventListener("DOMContentLoaded", () => { startGame(document) });
 
 async function startGame(htmlDoc) {
-    const ctx = contextManager.initNew(htmlDoc, stateManager);
+    const stateManager = new StateManager();
+    const renderManager = new RenderManager();
+    const gameActions = new GameActions();
+    const soundFactory = new SoundFactory();
+    const gameConfig = new ConfigManager();
+    const transitionManager = new TransitionManager();
     
-    await soundFactory.initBuffers(); // await is not ideal here
-    createParticles(ctx);
-    initEventHandlers(ctx, htmlDoc);
+    const contextManager = new ContextManager(
+        htmlDoc,
+        gameConfig.getEasy(),
+        stateManager,
+        renderManager,
+        transitionManager,
+        gameActions,
+        soundFactory);
+    
+    await contextManager.getCtx().f.initBuffers(); // await is not ideal here
+    createParticles(contextManager.getCtx());
+    initEventHandlers(contextManager.getCtx(), htmlDoc);
 
-    animationHandler.startAnimationLoop(ctx);
+    renderManager.startLoop(contextManager.getCtx());
 }
 
-const contextManager = {
-    initNew: (htmlDoc, stateManager) => {
+class ContextManager {
+    constructor(htmlDoc, gameConfig, stateManager, renderManager, transitionManager, gameActions, soundFactory) {
         const gameWidth = 350;
         const gameHeight = 640;
         const layoutInfo = initLayout(htmlDoc, gameWidth, gameHeight);
-        const gameConfig = initGameConfig();
-        const gameActions = new GameActions();
         const keyboardState = initKeyboardState();
         const gameState = stateManager.createNewState(gameConfig);
 
-        const ctx = {
+        this._ctx = {
             sm: stateManager,
+            rm: renderManager, 
+            tm: transitionManager,
             s: gameState,
             l: layoutInfo, 
             f: soundFactory,
             g: gameConfig,
             k: keyboardState,
-            a: gameActions,
-            requestRedraw: () => { gameState.__needsRedraw = true; }
+            a: gameActions
          };
 
-        gameActions.setContext(ctx);
+         this._ctx.a.setContext(this._ctx); // FIXME
+    }
 
-        return ctx;
-    },
-
-    createNewState: () => {
-        return stateManager.createNewState(gameConfig)
-    },
-
-    // NYI
-    requestState: () => { return this.__ctx.s; },
-    requestConfig: () => { return this.__ctx.g; },
-    requestLayout: () => { return this.__ctx.l; }
+    getCtx() {
+        return this._ctx;
+    }
 }
 
 function createParticles(ctx) {
@@ -141,118 +148,22 @@ function initKeyboardState() {
     };
 }
 
-class GameActions {
-    setContext(ctx) {
-        this._ctx = ctx;
+class ConfigManager {
+    getEasy() {
+        return {
+            matchTolerance: (Math.PI / 180) * 5, // 5 degrees
+            tumblerVelocity: 0.006283 / 2,
+            tumblerAcceleration: 0.000002,
+            tumblerFriction: 0.94,
+            numSpots: 10,
+            numScratches: 50,
+            keyPins: [
+                { startDeg: 0,   widthDeg: 30, depthPx: 30 },
+                { startDeg: 45,  widthDeg: 20, depthPx: 40 },
+                { startDeg: 200, widthDeg: 50, depthPx: 20 }
+            ]
+        };
     }
-    
-    fromCommand(cmd) {
-        switch (cmd) {
-            case "Connect":
-                this.connectToController();
-                break;
-            case "Start":
-                this.startTumbler()
-                break;
-            case "Stop":
-                this.stopTumbler()
-                break;
-            case "...":
-                this.resetGame();
-                break;
-        }
-    }
-    startTumbler() {
-        this._ctx.s.ttid = this._ctx.tm.createRotatingTransiton(
-            (v) => { this._ctx.s.tumblerAngle = v; this._ctx.s.needsRedraw = true; },
-            this._ctx.s.tumblerAngle,
-            this._ctx.g.tumblerVelocity);
-
-        this._ctx.l.buttonInfo[1].text = "Stop"; // FIXME
-        this._ctx.f.startRotationLoop();
-    }
-    stopTumbler() {
-        this._ctx.tm.stopAndRemove(this._ctx.s.ttid);
-        this._ctx.l.buttonInfo[1].text = "Start"; // FIXME
-        this._ctx.f.stopRotationLoop();
-    }
-    movePin(deltaAngle) {xxx
-        this._ctx.tm.createLinearTransiton(
-            (v) => { this._ctx.s.keyPinAngle = v; this._ctx.s.needsRedraw = true; },
-            this._ctx.s.keyPinAngle,
-            this._ctx.s.keyPinAngle + deltaAngle,
-            250);
-    }
-    movePinDirect(deltaAngle) {
-        this._ctx.s.pinDeltaAngle = deltaAngle;
-        this._ctx.s.needsRedraw = true;
-    }
-    rotateOnce() {
-        this._ctx.tm.createLinearTransiton(
-            (v) => { this._ctx.s.tumblerAngle = v; this._ctx.s.needsRedraw = true;},
-            this._ctx.s.tumblerAngle,
-            this._ctx.s.tumblerAngle + 2 * Math.PI,
-            2000,
-            () => { console.log("rotateOnce complete"); });
-    }
-    tryInsertPin() {
-        function isKeyPinInCut (keyPinAngle, tumblerAngle, matchTolerance) {
-            let angleDistance = keyPinAngle - tumblerAngle;
-            angleDistance = (angleDistance + Math.PI) % (Math.PI * 2);
-            if (angleDistance < 0)
-                angleDistance += Math.PI * 2;
-            angleDistance = angleDistance - Math.PI;
-
-            return (Math.abs(angleDistance) < matchTolerance);
-        }
-
-        const state = this._ctx.s;
-        const config = this._ctx.g;
-        const activePin = state.activePin;
-        const sfx = this._ctx.f;
-    
-        if (state.activePin) {
-            if (state.activePin.i) {
-                console.log("PIN ALREADY INSERTED");
-            }
-            else {
-                const canInsert = isKeyPinInCut(
-                    activePin.a,
-                    state.tumblerAngle + activePin.ca,
-                    config.matchTolerance);
-                
-                activePin.i = canInsert;
-                activePin.a = canInsert ? state.tumblerAngle : activePin.a; // align if inserted
-                
-                state.wasInserted = canInsert;
-
-                if (!canInsert) {
-                    sfx.playError();
-                }
-                else if (state.wasInserted) {
-                    sfx.playInsert();
-                }
-
-                state.needsRedraw = true;;
-            }
-        }
-    }
-}
-
-function initGameConfig() {
-    return {
-        matchTolerance: (Math.PI / 180) * 5, // 5 degrees
-        tumblerVelocity: 0.006283 / 2,
-        tumblerAcceleration: 0.000002,
-        tumblerFriction: 0.94,
-        numSpots: 10,
-        numScratches: 50,
-        keyPins: [
-            { startDeg: 0,   widthDeg: 30, depthPx: 30 },
-            { startDeg: 45,  widthDeg: 20, depthPx: 40 },
-            { startDeg: 200, widthDeg: 50, depthPx: 20 }
-        ]
-    };
 }
 
 function initEventHandlers(ctx, htmlDoc) {

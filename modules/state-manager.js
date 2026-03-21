@@ -2,8 +2,8 @@
 // state manager
 //
 
-const stateManager = {
-    createNewState: function(gameConfig) {
+export default class StateManager {
+    createNewState(gameConfig) {
         const newState = {
             tumblerAngle: 0,
             tumblerTargetAngle: 0,
@@ -26,9 +26,9 @@ const stateManager = {
         newState.activePin = newState.pinIterator.next().value;
 
         return newState;
-    },
+    }
 
-    _initPinStates: (pinConfig) => {
+    _initPinStates(pinConfig) {
         const pinStates = [];
 
         pinConfig.forEach(p => {
@@ -46,5 +46,3 @@ const stateManager = {
         return pinStates;
     }
 }
-
-export { stateManager };

@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "type": "chrome",
+            "name": "http://localhost/SpinnerGame/SpinnerGame.html",
+            "request": "launch",
+            "url": "http://localhost/SpinnerGame/SpinnerGame.html"
+        }
+    ]
+}
