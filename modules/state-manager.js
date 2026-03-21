@@ -10,7 +10,7 @@ const stateManager = {
             lastTime: 0,
             tumblerTargetVelocity: 0,
             tumblerVelocity: 0,
-            keyPinAngleChange: 0,
+            pinDeltaAngle: 0,
             wasInserted: false,
             pinStates: this._initPinStates(gameConfig.keyPins),
             lastLeftKeyDown: 0,

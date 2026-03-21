@@ -305,7 +305,7 @@ function drawTumbler(g) {
 
 function drawPins(g) {
     g.s.pinStates.forEach(p => {
-        p.a += g.s.keyPinAngleChange;
+        p.a += g.s.pinDeltaAngle;
 
         drawPin(g, p);
     });
