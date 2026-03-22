@@ -8,7 +8,43 @@ function pointOnCircle(x, y, r, a) {
     return [x + r * Math.cos(a), y + r * Math.sin(a)];
 }
 
-function drawMachinedSurface(g, l) {
+function drawMachinedSurfaceRadialByChatGPT(g, l) {
+    const ctx = g.l.c;
+    const x = l.x;
+    const y = l.y;
+    const inner = l.ir;
+    const outer = l.or;
+
+    let r = inner;
+
+    while (r < outer) {
+        const radius = r + (Math.random() - 0.5) * 1.2;
+
+        const segments = 4 + Math.floor(Math.random() * 6);
+
+        for (let s = 0; s < segments; s++) {
+            const a0 = (s / segments) * Math.PI * 2;
+            const a1 = a0 + (Math.random() * 0.5 + 0.2) * (Math.PI * 2 / segments);
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, a0, a1);
+
+            // mix light + dark scratches
+            if (Math.random() < 0.8) {
+                ctx.strokeStyle = `rgba(255,255,255,${Math.random() * 0.04})`;
+            } else {
+                ctx.strokeStyle = `rgba(0,0,0,${Math.random() * 0.06})`;
+            }
+
+            ctx.lineWidth = 0.3 + Math.random() * 0.5;
+            ctx.stroke();
+        }
+
+        r += 2 + Math.random() * 3;
+    }
+}
+
+function drawMachinedSurfaceLinear(g, l) {
     const ctx = g.l.c;
     const clipRadius = l.r;
     const surfaceX = l.x;
@@ -51,6 +87,38 @@ function drawMachinedSurface(g, l) {
     ctx.restore();
 }
 
+function drawMachinedSurfaceRadial(g, l) {
+    const ctx = g.l.c;
+    const surfaceX = l.x;
+    const surfaceY = l.y;
+    const surfaceInnerRadius = l.ir;
+    const surfaceOuterRadius = l.or;
+
+    for (let i = surfaceInnerRadius + 1; i < surfaceOuterRadius; i += 3) {
+        ctx.beginPath();
+        ctx.arc(surfaceX, surfaceY, i, 0, 2 * Math.PI);
+        ctx.strokeStyle = "rgba(0,0,0,0.07)";
+        ctx.lineWidth = 0.29;
+        ctx.stroke();
+    }
+
+    for (let i = surfaceInnerRadius + 3; i < surfaceOuterRadius; i += 5) {
+        ctx.beginPath();
+        ctx.arc(surfaceX, surfaceY, i, 0, 2 * Math.PI);
+        ctx.strokeStyle = "rgba(0,0,0,0.05)";
+        ctx.lineWidth = 0.51;
+        ctx.stroke();
+    }
+
+    for (let i = surfaceInnerRadius + 5; i < surfaceOuterRadius; i += 7) {
+        ctx.beginPath();
+        ctx.arc(surfaceX, surfaceY, i, 0, 2 * Math.PI);
+        ctx.strokeStyle = "rgba(0,0,0,0.03)";
+        ctx.lineWidth = 0.67;
+        ctx.stroke();
+    }
+}
+
 function drawPlug(g) {
     const ctx = g.l.c;
     let plugGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, g.l.keywayRadius);
@@ -61,11 +129,11 @@ function drawPlug(g) {
 
     ctx.beginPath();
     ctx.arc(0, 0, g.l.plugRadius, 0, Math.PI * 2);
-    ctx.fillStyle = plugGradient;
+    ctx.fillStyle = g.cm.UIColor.Metal.TumblerStop1;//plugGradient;
     ctx.fill();
 
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "#6f5724";
+    ctx.strokeStyle = g.cm.UIColor.Metal.TumblerStop8;//"#6f5724";
     ctx.stroke();
 
     // scratches
@@ -79,7 +147,7 @@ function drawPlug(g) {
 
     ctx.save();
     ctx.rotate(2 * Math.PI / 16);
-    drawMachinedSurface(g, surfaceInfo);
+    drawMachinedSurfaceLinear(g, surfaceInfo);
     ctx.restore();
 
     // outline of a key hole
@@ -145,10 +213,10 @@ function drawCylinder(g) {
 
     ctx.beginPath();
     ctx.arc(0, 0, g.l.cylinderRadius, 0, Math.PI * 2);
-    ctx.fillStyle = "#c9982f";
+    ctx.fillStyle = g.cm.UIColor.Metal.TumblerStop1//"#c9982f";
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "#5f4408";
+    ctx.strokeStyle = g.cm.UIColor.Metal.TumblerStop8;//"#5f4408";
     ctx.stroke();
 
     // machining
@@ -160,7 +228,7 @@ function drawCylinder(g) {
         h: g.l.cylinderRadius * 2,
         r: g.l.cylinderRadius };
 
-    drawMachinedSurface(g, surfaceInfo);
+    drawMachinedSurfaceLinear(g, surfaceInfo);
 
     // logo
 
@@ -261,14 +329,8 @@ function drawTumbler(g) {
     const ctx = g.l.c;
     const x = g.l.x;
     const y = g.l.y;
-    const tumblerRadius = g.l.tumblerRadius;
-    const cylinderRadius = g.l.cylinderRadius;
-    const tumblerGradient = ctx.createRadialGradient(x, y, cylinderRadius, x, y, tumblerRadius);
-    
-    tumblerGradient.addColorStop(0.00, g.cm.UIColor.Metal.TumblerStop1);
-    tumblerGradient.addColorStop(0.20, g.cm.UIColor.Metal.TumblerStop2);
-    tumblerGradient.addColorStop(0.75, g.cm.UIColor.Metal.TumblerStop3);
-    tumblerGradient.addColorStop(1.00, g.cm.UIColor.Metal.TumblerStop4);
+    const tumblerRadius = g.l.tumblerRadius;   // outer rotating part with cuts
+    const cylinderRadius = g.l.cylinderRadius; // inner part that has logo and key
 
     ctx.save();
     ctx.translate(x, y);
@@ -294,14 +356,36 @@ function drawTumbler(g) {
     });
     
     ctx.arc(0, 0, tumblerRadius, curAngle, 2 * Math.PI);
-    ctx.lineTo(tumblerRadius - 1, 0);
+    ctx.closePath();
     
-    ctx.fillStyle = tumblerGradient;
+    // main color
+    ctx.fillStyle = g.cm.UIColor.Metal.TumblerStop1;
+    ctx.fill();
+
+    const surfaceInfo = {
+        x: x - g.l.x,
+        y: y - g.l.y,
+        ir: cylinderRadius,
+        or: tumblerRadius };
+
+    // radial shadow
+    const shadowGr = ctx.createRadialGradient(0, 0, cylinderRadius, 0, 0, tumblerRadius);
+
+    shadowGr.addColorStop(0.0, "rgba(0, 0, 0, 0.00");
+    shadowGr.addColorStop(0.1, "rgba(0, 0, 0, 0.05");
+    shadowGr.addColorStop(0.8, "rgba(0, 0, 0, 0.05");
+    shadowGr.addColorStop(1.0, "rgba(0, 0, 0, 0.10");
+
+    ctx.fillStyle = shadowGr;
     ctx.fill();
     
+    // stroke the entire shape
     ctx.strokeStyle = "rgba(255,255,255,0.25)";
     ctx.lineWidth = 4
     ctx.stroke();
+
+    // machining 
+    drawMachinedSurfaceRadial(g, surfaceInfo);
 
     ctx.restore();
 }
@@ -636,7 +720,6 @@ function drawButtonPanel(g) {
             ctx.lineWidth = 1;
             ctx.stroke();
         }
-        
 
         ctx.save();
         ctx.translate(b.x, b.y);
@@ -707,7 +790,7 @@ function drawSpots(g) {
             p.pr,
             0,
             Math.PI * 2);
-        ctx.fillStyle = `rgba(0,0,0,${p.f})`;
+        ctx.fillStyle = `rgba(0,0,0,${p.f * 0.4})`;
         ctx.fill();
     });
 
@@ -722,7 +805,7 @@ function drawScratches(g) {
     ctx.rotate(g.s.tumblerAngle);
 
     ctx.strokeStyle = "rgba(0,0,0,0.05)";
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 0.5;
     
     g.l.scratchInfo.forEach(s => {
         ctx.beginPath();
@@ -734,7 +817,6 @@ function drawScratches(g) {
 }
 
 export {
-    drawMachinedSurface,
     drawScratches,
     drawSpots,
     drawFancyText,

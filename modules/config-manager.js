@@ -31,10 +31,14 @@ const Bronze = {
 
 /** @type {MetalColor} */
 const Nickel = {
-    TumblerStop1: "black",
-    TumblerStop2: "black",
-    TumblerStop3: "black",
-    TumblerStop4: "black"
+    TumblerStop1: "#b7b2ab",
+    TumblerStop2: "#9a958e",
+    TumblerStop3: "#cfcac3",
+    TumblerStop4: "#7e7973",
+    TumblerStop5: "#5f5b56",
+    TumblerStop6: "#e6e3de",
+    TumblerStop7: "#6f767d",
+    TumblerStop8: "#2a2a21"
 }
 
 // https://www.directdoorhardware.com/kwikset-deadbolts.htm
@@ -48,7 +52,7 @@ const metalTypes = [ // TBD
 
 class ConfigManager
 {
-     _selectedMetalColor = Bronze
+     _selectedMetalColor = Nickel;
 
     /** @returns {Config} */
     get Easy() {
