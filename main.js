@@ -50,7 +50,7 @@ class ContextManager {
         const gameHeight = 640;
         const layoutInfo = layoutFactory.Create(htmlDoc, gameWidth, gameHeight);
         const keyboardState = stateManager.createKeyboardState();
-        const gameConfig = configManager.getEasy();
+        const gameConfig = configManager.Easy;
         const gameState = stateManager.createStateFromConfig(gameConfig);
 
         this._ctx = {
@@ -61,7 +61,7 @@ class ContextManager {
             s: gameState,
             l: layoutInfo, 
             f: soundFactory,
-            g: configManager.getEasy(),
+            g: gameConfig,
             k: keyboardState,
             a: gameActions
          };

@@ -1,13 +1,14 @@
 /** @typedef {import("./types.js").Config} Config */
 /** @typedef {import("./types.js").Layout} Layout */
-/** @typedef {import("./types.js").Colors} Colors */
+/** @typedef {import("./types.js").UIColor} UIColor */
+/** @typedef {import("./types.js").MetalColor} MetalColor */
 
 //
 // generate levels, difficulties, etc
 //
 
 /** @type {Config} */
-const Config = {
+const EasyConfig = {
     matchTolerance: (Math.PI / 180) * 5,
     tumblerVelocity: 0.006283 / 2,
     tumblerAcceleration: 0.000002,
@@ -20,26 +21,48 @@ const Config = {
         { startDeg: 200, widthDeg: 50, depthPx: 20 }]
 }
 
+/** @type {MetalColor} */
+const Bronze = {
+    TumblerStop1: "#b0811e",
+    TumblerStop2: "#c9982f",
+    TumblerStop3: "#c9982f",
+    TumblerStop4: "#b0811e"
+}
+
+/** @type {MetalColor} */
+const Nickel = {
+    TumblerStop1: "black",
+    TumblerStop2: "black",
+    TumblerStop3: "black",
+    TumblerStop4: "black"
+}
+
+// https://www.directdoorhardware.com/kwikset-deadbolts.htm
+// polished brass, antique brass, antique nickel, rustic pewter, rustic bronze
+// venetian bronze, satin nickel, polished chrome, satin chrome, iron black
+
+const metalTypes = [ // TBD
+    { name: "bronze", colors: Bronze },
+    { name: "nickel", colors: Nickel },
+]
+
 class ConfigManager
 {
+     _selectedMetalColor = Bronze
+
     /** @returns {Config} */
-    getEasy() {
-        return this._easyConfig;
+    get Easy() {
+        return EasyConfig;
     }
 
-    getColors() {
-        return this._defaultColors;
-    }
-
-    /** @type {Config} */
-    _easyConfig = Config;
-
-    /** @type {Colors} */
-    _defaultColors = {
-        LightBrown: "#5a3b23",
-        MediumBrown: "#4a2f1d",
-        DarkBrown: "#3a2416",
-        RandomColor: "#123456"
+    /** @type {UIColor} */
+    get UIColor() {
+        return {        
+            LightBrown: "#5a3b23",
+            MediumBrown: "#4a2f1d",
+            DarkBrown: "#3a2416",
+            Metal: this._selectedMetalColor
+        };
     }
 }
 

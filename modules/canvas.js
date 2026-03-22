@@ -133,10 +133,6 @@ function drawTextArc(ctx, text, centerX, centerY, radius, startAngle) {
 function drawCylinder(g) {
     const ctx = g.l.c;
     
-    // https://www.directdoorhardware.com/kwikset-deadbolts.htm
-    // polished brass, antique brass, antique nickel, rustic pewter, rustic bronze
-    // venetian bronze, satin nickel, polished chrome, satin chrome, iron black
-    
     ctx.save();
     ctx.translate(g.l.x, g.l.y);
 
@@ -256,6 +252,11 @@ function drawKeyway(g) {
     ctx.stroke();
 }
 
+/**
+ * Draws Wood Paneling
+ * 
+ * @param {Context} g 
+ */
 function drawTumbler(g) {
     const ctx = g.l.c;
     const x = g.l.x;
@@ -264,10 +265,10 @@ function drawTumbler(g) {
     const cylinderRadius = g.l.cylinderRadius;
     const tumblerGradient = ctx.createRadialGradient(x, y, cylinderRadius, x, y, tumblerRadius);
     
-    tumblerGradient.addColorStop(0.00, "#b0811e");
-    tumblerGradient.addColorStop(0.20, "#c9982f");
-    tumblerGradient.addColorStop(0.75, "#c9982f");
-    tumblerGradient.addColorStop(1.00, "#b0811e");
+    tumblerGradient.addColorStop(0.00, g.cm.UIColor.Metal.TumblerStop1);
+    tumblerGradient.addColorStop(0.20, g.cm.UIColor.Metal.TumblerStop2);
+    tumblerGradient.addColorStop(0.75, g.cm.UIColor.Metal.TumblerStop3);
+    tumblerGradient.addColorStop(1.00, g.cm.UIColor.Metal.TumblerStop4);
 
     ctx.save();
     ctx.translate(x, y);
@@ -431,9 +432,9 @@ function drawBackground(c) {
     const height = c.l.h;
     let gr = ctx.createLinearGradient(0, 0, 0, height);
     
-    gr.addColorStop(0, c.cm.getColors().LightBrown);
-    gr.addColorStop(0.5, c.cm.getColors().MediumBrown);
-    gr.addColorStop(1, c.cm.getColors().DarkBrown);
+    gr.addColorStop(0, c.cm.UIColor.LightBrown);
+    gr.addColorStop(0.5, c.cm.UIColor.MediumBrown);
+    gr.addColorStop(1, c.cm.UIColor.DarkBrown);
     ctx.fillStyle = gr;
     ctx.fillRect(0, 0, width, height);
 

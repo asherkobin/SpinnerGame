@@ -6,11 +6,19 @@ import SoundFactory from "./sound-factory";
 import GameActions from "./game-actions";
 
 /**
- * @typedef {Object} Colors
+ * @typedef {Object} UIColor
  * @property {string} LightBrown
  * @property {string} MediumBrown
  * @property {string} DarkBrown
- * @property {string} RandomColor
+ * @property {MetalColor} Metal
+ */
+
+/**
+ * @typedef {Object} MetalColor
+ * @property {string} TumblerStop1
+ * @property {string} TumblerStop2
+ * @property {string} TumblerStop3
+ * @property {string} TumblerStop4
  */
 
 /**
