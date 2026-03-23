@@ -19,6 +19,9 @@ import GameActions from "./game-actions";
  * @property {string} TumblerStop2
  * @property {string} TumblerStop3
  * @property {string} TumblerStop4
+ * @property {string} PinStop1
+ * @property {string} PinStop2
+ * @property {string} PinStop3
  */
 
 /**
@@ -75,7 +78,7 @@ import GameActions from "./game-actions";
 
 /**
  * @typedef {Object} Layout
- * @property {Object} c
+ * @property {CanvasRenderingContext2D} c - Canvas API Context
  * @property {Object} htmlClientRect
  * @property {Object} w
  * @property {Object} h

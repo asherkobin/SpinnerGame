@@ -62,17 +62,17 @@ export default class GameActions {
         this._ctx.tm.createLinearTransiton(
             (v) => { this._ctx.s.plugAngle = v; this._ctx.s.needsRedraw = true;},
             this._ctx.s.plugAngle,
-            this._ctx.s.plugAngle + 2 * Math.PI / 16,
+            this._ctx.s.plugAngle + 2 * Math.PI / 64,
             100,
             () => this._ctx.tm.createLinearTransiton(
                 (v) => { this._ctx.s.plugAngle = v; this._ctx.s.needsRedraw = true;},
                 this._ctx.s.plugAngle,
-                this._ctx.s.plugAngle - 4 * Math.PI / 16,
+                this._ctx.s.plugAngle - 4 * Math.PI / 64,
                 200,
                 () => this._ctx.tm.createLinearTransiton(
                     (v) => { this._ctx.s.plugAngle = v; this._ctx.s.needsRedraw = true;},
                     this._ctx.s.plugAngle,
-                    this._ctx.s.plugAngle + 2 * Math.PI / 16,
+                    this._ctx.s.plugAngle + 2 * Math.PI / 64,
                     100)));
     }
     tryInsertPin() {

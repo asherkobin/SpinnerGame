@@ -26,19 +26,20 @@ const Bronze = {
     TumblerStop1: "#b0811e",
     TumblerStop2: "#c9982f",
     TumblerStop3: "#c9982f",
-    TumblerStop4: "#b0811e"
+    TumblerStop4: "#b0811e",
+    PinStop1:     "#c0912e",
+    PinStop2:     "#c9982f",
+    PinStop3:     "#c0912e"
 }
-
 /** @type {MetalColor} */
 const Nickel = {
     TumblerStop1: "#b7b2ab",
     TumblerStop2: "#9a958e",
-    TumblerStop3: "#cfcac3",
+    TumblerStop3: "#2a2a21",
     TumblerStop4: "#7e7973",
-    TumblerStop5: "#5f5b56",
-    TumblerStop6: "#e6e3de",
-    TumblerStop7: "#6f767d",
-    TumblerStop8: "#2a2a21"
+    PinStop1:     "#b7b2ab",
+    PinStop2:     "#b7b2ab",
+    PinStop3:     "#b7b2ab"
 }
 
 // https://www.directdoorhardware.com/kwikset-deadbolts.htm
