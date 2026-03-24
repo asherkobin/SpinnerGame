@@ -1,5 +1,5 @@
-import { StateManager } from "./state-manager";
-import RenderManager from "./render-manager";
+import StateManager from "./state-manager";
+import GameManager from "./game-manager";
 import TransitionManager from "./transition-manager"
 import { ConfigManager } from "./config-manager";
 import SoundFactory from "./sound-factory";
@@ -51,34 +51,40 @@ import GameActions from "./game-actions";
  */
 
 /**
- * @typedef {Object} KeyboardState
- * @property {Object} leftKeyDown
- * @property {Object} rightKeyDown
- * @property {Object} upKeyDown
- * @property {Object} downKeyDown
- * @property {Object} lastLeftKeyPress
- * @property {Object} lastRightKeyPress
- * @property {Object} lastUpKeyPress
- * @property {Object} lastDownKeyPress
+ * @typedef {Object} UserInputState
+ * @property {boolean} leftKey
+ * @property {boolean} rightKey
+ * @property {boolean} upKey
+ * @property {boolean} downKey
+ * @property {string} leftKeyPress
+ * @property {string} rightKeyPress
+ * @property {string} upKeyPress
+ * @property {string} downKeyPress
+ * @property {boolean} leftButton
+ * @property {boolean} rightButton
+ * @property {boolean} leftClick
+ * @property {boolean} rightClick
+ * @property {number} pointerX
+ * @property {number} pointerY
  */
 
 /**
  * @typedef {Object} Context
  * @property {StateManager} sm
- * @property {RenderManager} rm
+ * @property {GameManager} gm
  * @property {TransitionManager} tm
  * @property {ConfigManager} cm
  * @property {State} s
  * @property {Layout} l
- * @property {SoundFactory} f
+ * @property {SoundFactory} f - Sound FX
  * @property {Config} g
- * @property {KeyboardState} k
  * @property {GameActions} a
  */
 
 /**
  * @typedef {Object} Layout
  * @property {CanvasRenderingContext2D} c - Canvas API Context
+ * @property {HTMLDocument} htmlDoc
  * @property {Object} htmlClientRect
  * @property {Object} w
  * @property {Object} h

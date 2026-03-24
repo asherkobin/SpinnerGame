@@ -1,16 +1,16 @@
 /** @typedef {import("./types.js").State} State */
 /** @typedef {import("./types.js").Config} Config */
-/** @typedef {import("./types.js").KeyboardState} KeyboardState */
 
 //
 // state manager
 //
 
-class StateManager {
+export default class StateManager {
     /**
      * Creates New State
      * 
-     * @param {Config} gameConfig 
+     * @param {Config} gameConfig
+     * @returns {State}
      */
     createStateFromConfig(gameConfig) {
         const pinStates = this._initPinStates(gameConfig.keyPins);
@@ -36,8 +36,32 @@ class StateManager {
         return newState;
     }
 
+    _updateRegions = [1];
+
+    /**
+     * (NYI) Returns the regions that need updating due to state changes
+     * 
+     * @returns {Array}
+     */
+    getUpdateRegions() {
+        return this._updateRegions;
+    }
+
+    /**
+     * (NYI) Removes all update regions (usually as a result of redering)
+     */
+    clearUpdateRegions() {
+        this._updateRegions.length = 0;
+    }
+
     nextPin(state) {
         return state.pinIterator.next().value;
+    }
+
+    updatePinDeltaAngle(dTheta) {
+        this._pinDeltaAngle = dTheta;
+
+        console.log("state change: _pinDeltaAngle");
     }
 
     _initPinStates(pinConfig) {
@@ -57,21 +81,4 @@ class StateManager {
 
         return pinStates;
     }
-
-    createKeyboardState() {
-        /** @type {KeyboardState} */
-        const keyboardState = {
-            leftKeyDown: false,
-            rightKeyDown: false,
-            upKeyDown: false,
-            downKeyDown: false,
-            lastLeftKeyPress: 0,
-            lastRightKeyPress: 0,
-            lastUpKeyPress: 0,
-            lastDownKeyPress: 0 };
-
-        return keyboardState;
-    }
 }
-
-export { StateManager }

@@ -1,3 +1,5 @@
+/** @typedef {import("./types.js").Context} Context */
+
 import { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler } from "./canvas.js";
 import { drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel } from "./canvas.js"
 
@@ -19,20 +21,29 @@ export default class RenderManager {
     }
 
     stateHandlers = [
-        this.handleUserInput,
-        this.handleWinCondition ];
+        this.handleWinCondition,
+        this.handleUserInput ];
     
     animationLoop(timeStamp) {
         const deltaTime = timeStamp - this._ctx.s.lastTime;
         
         this._ctx.s.lastTime = timeStamp; 
 
+        // user input
         for (const stateHandler of this.stateHandlers) {
+            // read input
+            // update state based on input
+            // update animation based on state changes
+            // queue sfx
+            // draw the stuff
             stateHandler(this._ctx);
+            // time
         }
 
+        // updates state variables
         this._ctx.tm.handleTimeChange(deltaTime);
 
+        // render
         if (this._ctx.s.needsRedraw) {
             this._renderFrame();
             this._ctx.s.needsRedraw = false;
@@ -53,14 +64,15 @@ export default class RenderManager {
         drawButtonPanel(this._ctx);
     }
 
+    /**
+     * Check state for win-condition and react
+     * 
+     * @param {Context} ctx 
+     */
     handleWinCondition(ctx) {
-        if (!ctx.s.allPinsInserted) {
-            const allPinsInserted = ctx.s.pinStates.every(p => p.i);
-
-            if (allPinsInserted && ctx.s.pinStates.length > 0) {
-                ctx.a.rotateOnce();
-                ctx.s.allPinsInserted = true;
-            }
+        if (ctx.s.allPinsInserted) {
+            ctx.f.playUnlock();
+         //   ctx.a.rotateOnce();
         }
     }
 

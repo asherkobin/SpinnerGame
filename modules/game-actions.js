@@ -46,7 +46,7 @@ export default class GameActions {
             this._ctx.s.keyPinAngle + deltaAngle,
             250);
     }
-    movePinDirect(deltaAngle) {
+    movePinDirect(deltaAngle) { console.log("movePinDirect: " + deltaAngle); return;
         this._ctx.s.pinDeltaAngle = deltaAngle;
         this._ctx.s.needsRedraw = true;
     }

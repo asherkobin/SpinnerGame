@@ -94,6 +94,7 @@ class LayoutFactory {
         /** @type {Layout} */
         const Layout = {
             c: canvasElem.getContext("2d"),
+            htmlDoc: htmlDoc,
             htmlClientRect: htmlClientRect, // FIXME
             w: gameWidth,
             h: gameHeight,

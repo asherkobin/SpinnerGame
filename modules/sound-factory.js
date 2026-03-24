@@ -12,6 +12,7 @@ export default class SoundFactory {
         this._rotateBuf = await this._getBuf("Audio/rotate.try.wav");
         this._twistBuf = await this._getBuf("Audio/twist.wav");
         this._errorBuf = await this._getBuf("Audio/error.wav");
+        this._unlockBuf = await this._getBuf("Audio/unlock.mp3");
     }
     
     _getBuf(localPath) {
@@ -39,6 +40,10 @@ export default class SoundFactory {
     
     playNudge() {
         this._startBuf(this._nudgeBuf);
+    }
+
+    playUnlock() {
+        this._startBuf(this._unlockBuf);
     }
     
     playInsert() {
