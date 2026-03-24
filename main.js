@@ -9,14 +9,15 @@ import ConfigManager from "./modules/config-manager.js";
 document.addEventListener("DOMContentLoaded", () => { startGame(document) });
 
 async function startGame(htmlDoc) {
-    const stateManager = new StateManager();
     const soundFactory = new SoundFactory();
     const configManager = new ConfigManager(htmlDoc, 350, 640);
+    const currentConfig = configManager.Easy;
+    const stateManager = new StateManager(currentConfig);
     const transitionManager = new TransitionManager();
     const gameManager = new GameManager(
         htmlDoc,
-        stateManager,
         configManager,
+        stateManager,
         soundFactory);
 
     await soundFactory.initBuffers(); // FIXME

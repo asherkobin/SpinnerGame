@@ -56,6 +56,9 @@ export default class InputEventManager {
      * @returns {UserInputState}
      */
     getState(dT) {
+
+//console.log(this._userInputState.upKey);
+
         this._leftKeyHoldTime = (this._leftKey) ? this._leftKeyHoldTime + dT : 0;
         this._rightKeyHoldTime = (this._rightKey) ? this._rightKeyHoldTime + dT : 0;
         this._upKeyHoldTime = (this._upKey) ? this._upKeyHoldTime + dT : 0;

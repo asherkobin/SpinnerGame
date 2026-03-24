@@ -1,10 +1,3 @@
-import StateManager from "./state-manager";
-import GameManager from "./game-manager";
-import TransitionManager from "./transition-manager"
-import { ConfigManager } from "./config-manager";
-import SoundFactory from "./sound-factory";
-import GameActions from "./game-actions";
-
 /**
  * @typedef {Object} UIColor
  * @property {string} LightBrown
@@ -43,10 +36,9 @@ import GameActions from "./game-actions";
  * @property {Object} pinStates
  * @property {number} lastLeftKeyDown
  * @property {number} lastRightKeyDown
- * @property {Object} allPinsInserted
+ * @property {boolean} allPinsInserted
  * @property {number} plugAngle
- * @property {Object} needsRedraw
- * @property {Object} pinIterator
+ * @property {boolean} needsRedraw
  * @property {Object} activePin
  */
 
@@ -66,19 +58,6 @@ import GameActions from "./game-actions";
  * @property {boolean} rightClick
  * @property {number} pointerX
  * @property {number} pointerY
- */
-
-/**
- * @typedef {Object} Context
- * @property {StateManager} sm
- * @property {GameManager} gm
- * @property {TransitionManager} tm
- * @property {ConfigManager} cm
- * @property {State} s
- * @property {Layout} l
- * @property {SoundFactory} f - Sound FX
- * @property {Config} g
- * @property {GameActions} a
  */
 
 /**

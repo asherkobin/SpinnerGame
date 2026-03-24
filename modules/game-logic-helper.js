@@ -1,12 +1,86 @@
 /** @typedef {import("./types.js").State} State */
+/** @typedef {import("./types.js").UserInputState} UserInputState */
 
 import StateManager from "./state-manager.js";
+import Config from "./config-manager.js"
+import SoundFactory from "./sound-factory.js";
 
-export default class GameActions {
-    /** @param {StateManager} stateManager */
-    constructor (stateManager) {
+export default class GameLogicHelper {
+    /**
+     * Game Logic
+     * 
+     * @param {StateManager} stateManager
+     * @param {Config} gameConfig
+     * @param {SoundFactory} soundFactory
+     */
+    constructor (stateManager, gameConfig, soundFactory) {
         /** @type {StateManager} */
         this._stateManager = stateManager;
+        /** @type {Config} */
+        this._gameConfig = gameConfig;
+        /** @type {SoundFactory} */
+        this._soundFactory = soundFactory;
+    }
+
+    /**
+     * Main entry-point that calls StateManager based on user input and time change/
+     * 
+     * @param {UserInputState} userInput
+     * @param {number} dT
+     */
+    updateGameState(userInput, dT)
+    {
+         if (userInput.leftKey) {
+            let deltaAngle = 0;
+            switch (userInput.leftKeyPress) {
+                case "short":
+                    deltaAngle = 0.005;
+                    break;
+                case "medium":
+                    deltaAngle = 0.010;
+                    break;
+                case "long":
+                    deltaAngle = 0.050;
+                    break;
+            }
+            this.movePin(deltaAngle);
+        }
+
+        if (userInput.rightKey) {
+            let deltaAngle = 0;
+            switch (userInput.rightKeyPress) {
+                case "short":
+                    deltaAngle = -0.005;
+                    break;
+                case "medium":
+                    deltaAngle = -0.010;
+                    break;
+                case "long":
+                    deltaAngle = -0.050;
+                    break;
+            }
+            this.movePin(deltaAngle);
+        }
+
+        if (userInput.upKey) {
+            const insertionResult = this.tryInsertPin();
+
+            if (insertionResult == "success") {
+                this._lastInsertionResult = insertionResult;
+                this._soundFactory.playInsert();
+            }
+            else if (insertionResult == "fail") {
+                this._lastInsertionResult = insertionResult;
+                this._soundFactory.playError();
+            }
+            else {
+                console.log("Already Inserted");
+            }
+        }
+        else if (this._lastInsertionResult == "success") {
+            this._stateManager.activateNextPin();
+            this._lastInsertionResult = "";
+        }
     }
 
     movePin(deltaAngle) {
@@ -66,6 +140,7 @@ export default class GameActions {
             () => { console.log("rotateOnce complete"); });
     }
     shakeKeyPlug() {
+        return;
         this._ctx.tm.createLinearTransiton(
             (v) => { this._ctx.s.plugAngle = v; this._ctx.s.needsRedraw = true;},
             this._ctx.s.plugAngle,
@@ -93,41 +168,29 @@ export default class GameActions {
             return (Math.abs(angleDistance) < matchTolerance);
         }
 
-        const state = this._ctx.s;
-        const config = this._ctx.g;
-        const activePin = state.activePin;
-        const sfx = this._ctx.f;
-        const sm = this._ctx.sm;
-    
-        if (state.activePin) {
-            if (state.activePin.i) {
-                console.log("PIN ALREADY INSERTED");
+        const activePin = this._stateManager.ActivePin;
+
+        if (activePin) {
+            if (activePin.i) {
+                return "already";
             }
             else {
                 const canInsert = isKeyPinInCut(
                     activePin.a,
-                    state.tumblerAngle + activePin.ca,
-                    config.matchTolerance);
+                    this._stateManager.TumblerAngle + activePin.ca,
+                    this._gameConfig.matchTolerance);
                 
-                activePin.i = canInsert;
-                activePin.a = canInsert ? state.tumblerAngle : activePin.a; // align if inserted
+                activePin.a = canInsert ? this._stateManager.TumblerAngle : activePin.a; // align if inserted
                 
                 if (canInsert) {
-                    sfx.playInsert();
-                    state.activePin = sm.nextPin(state);
+                    this._stateManager.insertPin(this._stateManager.ActivePin);
+                    //this.shakeKeyPlug();
 
-                    if (state.activePin) {
-                        this.shakeKeyPlug();
-                    }
-                    else {
-                        // AKA allPinsInserted
-                    }
+                    return "success";
                 }
                 else {
-                    sfx.playError();
+                    return "fail";
                 }
-
-                state.needsRedraw = true;;
             }
         }
     }

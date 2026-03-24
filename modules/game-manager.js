@@ -2,10 +2,10 @@ import InputEventManager from "./input-event-manager";
 import StateManager from "./state-manager";
 import  { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler, drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel }  from "./canvas";
 import SoundFactory from "./sound-factory";
-import GameActions from "./game-actions";
+import GameLogicHelper from "./game-logic-helper";
 import ConfigManager from "./config-manager";
 
-/** @typedef {import("./types.js").Context} Context */
+/** @typedef {import("./types.js").Config} Config */
 /** @typedef {import("./types.js").UserInputState} UserInputState */
 /** @typedef {import("./types.js").State} State */
 /** @typedef {import("./types.js").Layout} Layout */
@@ -16,18 +16,29 @@ import ConfigManager from "./config-manager";
 //
 
 export default class GameManager {
-    /** @param {HTMLDocument} htmlDoc */
-    /** @param {StateManager} stateManager */
-    /** @param {ConfigManager} configManager */
-    /** @param {SoundFactory} soundFactory */
-    constructor(htmlDoc, stateManager, configManager, soundFactory) {
+    /**
+     * Game Manager
+     * 
+     * @param {HTMLDocument} htmlDoc
+     * @param {ConfigManager} configManager
+     * @param {StateManager} stateManager
+     * @param {SoundFactory} soundFactory
+     */
+    constructor(htmlDoc, configManager, stateManager, soundFactory) {
+        /** @type {InputEventManager} */
         this._inputEventManager = new InputEventManager(htmlDoc);
         /** @type {StateManager} */
         this._stateManager = stateManager;
-        this._stateManager.State = stateManager.createStateFromConfig(configManager.Easy);
+        /** @type {SoundFactory} */
+        this._soundFactory = soundFactory;
+        /** @type {Config} */
+        this._currentConfig = configManager.Easy;
+        /** @type {Layout} */
         this._currentLayout = configManager.DefaultLayout;
-        this._soundFactor = soundFactory;
-        this._gameActions = new GameActions(stateManager);
+        /** @type {GameLogicHelper} */
+        this._logicHelper = new GameLogicHelper(this._stateManager, this._currentConfig, this._soundFactory);
+
+        this._lastInsertionResult = "unknown";
     }
     
     startLoop() {
@@ -71,7 +82,7 @@ export default class GameManager {
         const g = {
 
             l: this._currentLayout,
-            s: this._stateManager.State
+            s: this._stateManager._currentState
         }
         
         if (updateRegions.length > 0) {
@@ -93,36 +104,6 @@ export default class GameManager {
      * @param {number} dT 
      */
     updateState(dT) {
-        if (this._inputState.leftKey) {
-            let deltaAngle = 0;
-            switch (this._inputState.leftKeyPress) {
-                case "short":
-                    deltaAngle = 0.005;
-                    break;
-                case "medium":
-                    deltaAngle = 0.010;
-                    break;
-                case "long":
-                    deltaAngle = 0.050;
-                    break;
-            }
-            this._gameActions.movePin(deltaAngle);
-        }
-
-        if (this._inputState.rightKey) {
-            let deltaAngle = 0;
-            switch (this._inputState.rightKeyPress) {
-                case "short":
-                    deltaAngle = -0.005;
-                    break;
-                case "medium":
-                    deltaAngle = -0.010;
-                    break;
-                case "long":
-                    deltaAngle = -0.050;
-                    break;
-            }
-            this._gameActions.movePin(deltaAngle);
-        }
+        this._logicHelper.updateGameState(this._inputState, dT);
     }
 }

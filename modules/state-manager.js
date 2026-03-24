@@ -10,13 +10,12 @@ export default class StateManager {
      * Creates New State
      * 
      * @param {Config} gameConfig
-     * @returns {State}
      */
-    createStateFromConfig(gameConfig) {
+    constructor(gameConfig) {
         const pinStates = this._initPinStates(gameConfig.keyPins);
 
         /** @type {State} */
-        const newState = {
+        this._currentState = {
             tumblerAngle: 0,
             lastTime: 0,
             pinDeltaAngle: 0,
@@ -26,14 +25,11 @@ export default class StateManager {
             allPinsInserted: false,
             plugAngle: 0,
             needsRedraw: true,
-            pinIterator: null,
             activePin: null
         }
 
-        newState.pinIterator = pinStates.values();
-        newState.activePin = newState.pinIterator.next().value;
-
-        return newState;
+        this._pinIterator = pinStates.values();
+        this._currentState.activePin = this._pinIterator.next().value;
     }
 
     _updateRegions = [1];
@@ -54,30 +50,6 @@ export default class StateManager {
         this._updateRegions.length = 0;
     }
 
-    nextPin(state) {
-        return state.pinIterator.next().value;
-    }
-
-    /** @param {State} currentState */
-    set State(currentState) {
-        /** @type {State} */
-        this._currentState = currentState;
-    }
-
-    /** @returns {State} */
-    get State() {
-        return this._currentState;
-    }
-
-    set PinDeltaAngle(dTheta) {
-        this._currentState.pinDeltaAngle = dTheta;
-        this._updateRegions.push(1);
-    }
-
-    get PinDeltaAngle() {
-        return this._currentState.pinDeltaAngle;
-    }
-
     _initPinStates(pinConfig) {
         const pinStates = [];
 
@@ -94,5 +66,31 @@ export default class StateManager {
         });
 
         return pinStates;
+    }
+
+    insertPin(pinToInsert) {
+        pinToInsert.i = true;
+        this._updateRegions.push(1);
+    }
+
+    activateNextPin() {
+        this._currentState.activePin = this._pinIterator.next().value;
+        this._updateRegions.push(1);
+    }
+
+    get PinDeltaAngle() {
+        return this._currentState.pinDeltaAngle;
+    }
+    set PinDeltaAngle(dTheta) {
+        this._currentState.pinDeltaAngle = dTheta;
+        this._updateRegions.push(1);
+    }
+
+    get ActivePin() {
+        return this._currentState.activePin;
+    }
+
+    get TumblerAngle() {
+        return this._currentState.tumblerAngle;
     }
 }
