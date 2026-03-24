@@ -1,5 +1,3 @@
-/** @typedef {import("./types.js").Context} Context */
-
 //
 // canvas draw routines
 //

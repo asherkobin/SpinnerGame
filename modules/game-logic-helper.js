@@ -1,8 +1,9 @@
 /** @typedef {import("./types.js").State} State */
 /** @typedef {import("./types.js").UserInputState} UserInputState */
+/** @typedef {import("./types.js").Config} Config */
+/** @typedef {import("./types.js").Layout} Layout */
 
 import StateManager from "./state-manager.js";
-import Config from "./config-manager.js"
 import SoundFactory from "./sound-factory.js";
 
 export default class GameLogicHelper {
@@ -10,27 +11,60 @@ export default class GameLogicHelper {
      * Game Logic
      * 
      * @param {StateManager} stateManager
-     * @param {Config} gameConfig
+     * @param {Config} currentConfig
+     * @param {Layout} currentLayout
      * @param {SoundFactory} soundFactory
      */
-    constructor (stateManager, gameConfig, soundFactory) {
+    constructor (stateManager, currentConfig, currentLayout, soundFactory) {
         /** @type {StateManager} */
         this._stateManager = stateManager;
         /** @type {Config} */
-        this._gameConfig = gameConfig;
+        this._currentConfig = currentConfig;
+        /** @type {Layout} */
+        this._currentLayout = currentLayout;
         /** @type {SoundFactory} */
         this._soundFactory = soundFactory;
     }
+    
+    /**
+     * Generates a command based on user input.
+     * 
+     * @param {UserInputState} userInput
+     * @param {number} dT
+     */
+    _transformInputToCommand(userInput, dT) {
+        const buttonInfo = this._objectFromPoint(userInput.pointerX, userInput.pointerY);
+
+        if (userInput.pointerClick != "none") {
+            console.log("button: " + buttonInfo);
+        }
+    }
+
+    /** @returns {object} */
+    _objectFromPoint(x, y) {
+        // search for button
+        const foundButton = this._currentLayout.buttonInfo.find(b => {
+            const bx = this._currentLayout.bpx + b.x;
+            const by = this._currentLayout.bpy + b.y;
+            const bw = b.w;
+            const bh = this._currentLayout.bh;
+            const pointInButton = x >= bx && x <= bx + bw && y >= by && y <= by + bh;
+
+            return pointInButton;
+        });
+    }
 
     /**
-     * Main entry-point that calls StateManager based on user input and time change/
+     * Main entry-point that calls StateManager based on user input and time change.
      * 
      * @param {UserInputState} userInput
      * @param {number} dT
      */
     updateGameState(userInput, dT)
     {
-         if (userInput.leftKey) {
+        this._transformInputToCommand(userInput, dT);
+        
+        if (userInput.leftKey) {
             let deltaAngle = 0;
             switch (userInput.leftKeyPress) {
                 case "short":
@@ -178,7 +212,7 @@ export default class GameLogicHelper {
                 const canInsert = isKeyPinInCut(
                     activePin.a,
                     this._stateManager.TumblerAngle + activePin.ca,
-                    this._gameConfig.matchTolerance);
+                    this._currentConfig.matchTolerance);
                 
                 activePin.a = canInsert ? this._stateManager.TumblerAngle : activePin.a; // align if inserted
                 

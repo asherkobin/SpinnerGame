@@ -1,9 +1,10 @@
-import InputEventManager from "./input-event-manager";
-import StateManager from "./state-manager";
-import  { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler, drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel }  from "./canvas";
-import SoundFactory from "./sound-factory";
-import GameLogicHelper from "./game-logic-helper";
-import ConfigManager from "./config-manager";
+import InputEventManager from "./input-event-manager.js";
+import StateManager from "./state-manager.js";
+import { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler }  from "./canvas.js";
+import { drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel }  from "./canvas.js";
+import SoundFactory from "./sound-factory.js";
+import GameLogicHelper from "./game-logic-helper.js";
+import ConfigManager from "./config-manager.js";
 
 /** @typedef {import("./types.js").Config} Config */
 /** @typedef {import("./types.js").UserInputState} UserInputState */
@@ -26,7 +27,11 @@ export default class GameManager {
      */
     constructor(htmlDoc, configManager, stateManager, soundFactory) {
         /** @type {InputEventManager} */
-        this._inputEventManager = new InputEventManager(htmlDoc);
+        this._inputEventManager = new InputEventManager(
+            htmlDoc,
+            configManager.DefaultLayout.htmlClientRect.x,
+            configManager.DefaultLayout.htmlClientRect.y
+        );
         /** @type {StateManager} */
         this._stateManager = stateManager;
         /** @type {SoundFactory} */
@@ -36,7 +41,11 @@ export default class GameManager {
         /** @type {Layout} */
         this._currentLayout = configManager.DefaultLayout;
         /** @type {GameLogicHelper} */
-        this._logicHelper = new GameLogicHelper(this._stateManager, this._currentConfig, this._soundFactory);
+        this._logicHelper = new GameLogicHelper(
+            this._stateManager,
+            this._currentConfig,
+            this._currentLayout,
+            this._soundFactory);
 
         this._lastInsertionResult = "unknown";
     }

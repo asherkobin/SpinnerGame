@@ -54,8 +54,8 @@ const metalTypes = [ // TBD
 export default class ConfigManager
 {
     constructor(htmlDoc, gameWidth, gameHeight) {
+        /** @type {HTMLCanvasElement} */
         const canvasElem = htmlDoc.createElement("canvas");
-        const htmlClientRect = canvasElem.getBoundingClientRect();
 
         this._selectedMetalColor = Nickel;
         
@@ -72,7 +72,7 @@ export default class ConfigManager
         this._defaultLayout = {
             c: canvasElem.getContext("2d"),
             htmlDoc: htmlDoc,
-            htmlClientRect: htmlClientRect, // FIXME
+            htmlClientRect: canvasElem.getBoundingClientRect(),
             w: gameWidth,
             h: gameHeight,
             x: gameWidth / 2,

@@ -52,10 +52,8 @@
  * @property {string} rightKeyPress
  * @property {string} upKeyPress
  * @property {string} downKeyPress
- * @property {boolean} leftButton
- * @property {boolean} rightButton
- * @property {boolean} leftClick
- * @property {boolean} rightClick
+ * @property {boolean} pointerButton
+ * @property {string} pointerClick
  * @property {number} pointerX
  * @property {number} pointerY
  */
@@ -64,30 +62,30 @@
  * @typedef {Object} Layout
  * @property {CanvasRenderingContext2D} c - Canvas API Context
  * @property {HTMLDocument} htmlDoc
- * @property {Object} htmlClientRect
- * @property {Object} w
- * @property {Object} h
- * @property {Object} x
- * @property {Object} y
- * @property {Object} bh
- * @property {Object} bw
- * @property {Object} bpx
- * @property {Object} bpy
- * @property {Object} bh
- * @property {Object} bw
- * @property {Object} bpx
- * @property {Object} bpy
- * @property {Object} bpw
- * @property {Object} bph
- * @property {Object} tpx
- * @property {Object} tpy
- * @property {Object} tpw
- * @property {Object} tph
- * @property {Object} keywayRadius
- * @property {Object} plugRadius
- * @property {Object} cylinderRadius
- * @property {Object} tumblerRadius
- * @property {Object} tumblerSpacing
+ * @property {DOMRect} htmlClientRect
+ * @property {number} w
+ * @property {number} h
+ * @property {number} x
+ * @property {number} y
+ * @property {number} bh
+ * @property {number} bw
+ * @property {number} bpx
+ * @property {number} bpy
+ * @property {number} bh
+ * @property {number} bw
+ * @property {number} bpx
+ * @property {number} bpy
+ * @property {number} bpw
+ * @property {number} bph
+ * @property {number} tpx
+ * @property {number} tpy
+ * @property {number} tpw
+ * @property {number} tph
+ * @property {number} keywayRadius
+ * @property {number} plugRadius
+ * @property {number} cylinderRadius
+ * @property {number} tumblerRadius
+ * @property {number} tumblerSpacing
  * @property {Object} buttonInfo
  * @property {Object} spotInfo
  * @property {Object} scratchInfo
