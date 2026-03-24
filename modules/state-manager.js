@@ -58,10 +58,24 @@ export default class StateManager {
         return state.pinIterator.next().value;
     }
 
-    updatePinDeltaAngle(dTheta) {
-        this._pinDeltaAngle = dTheta;
+    /** @param {State} currentState */
+    set State(currentState) {
+        /** @type {State} */
+        this._currentState = currentState;
+    }
 
-        console.log("state change: _pinDeltaAngle");
+    /** @returns {State} */
+    get State() {
+        return this._currentState;
+    }
+
+    set PinDeltaAngle(dTheta) {
+        this._currentState.pinDeltaAngle = dTheta;
+        this._updateRegions.push(1);
+    }
+
+    get PinDeltaAngle() {
+        return this._currentState.pinDeltaAngle;
     }
 
     _initPinStates(pinConfig) {

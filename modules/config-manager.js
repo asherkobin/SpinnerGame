@@ -51,48 +51,25 @@ const metalTypes = [ // TBD
     { name: "nickel", colors: Nickel },
 ]
 
-class ConfigManager
+export default class ConfigManager
 {
-     _selectedMetalColor = Nickel;
-
-    /** @returns {Config} */
-    get Easy() {
-        return EasyConfig;
-    }
-
-    /** @type {UIColor} */
-    get UIColor() {
-        return {        
-            LightBrown: "#5a3b23",
-            MediumBrown: "#4a2f1d",
-            DarkBrown: "#3a2416",
-            Metal: this._selectedMetalColor
-        };
-    }
-}
-
-class LayoutFactory {
-    _initCanvas(htmlDoc) {
+    constructor(htmlDoc, gameWidth, gameHeight) {
         const canvasElem = htmlDoc.createElement("canvas");
+        const htmlClientRect = canvasElem.getBoundingClientRect();
+
+        this._selectedMetalColor = Nickel;
         
         canvasElem.style.display = "block";
         canvasElem.style.border = "1px solid black";
         canvasElem.style.margin = "auto";
-        canvasElem.width = 350;
-        canvasElem.height = 640;
+        canvasElem.width = gameWidth;
+        canvasElem.height = gameHeight;
         canvasElem.id = "canvas";
 
         htmlDoc.body.appendChild(canvasElem);
 
-        return canvasElem;
-
-    }
-    Create(htmlDoc, gameWidth, gameHeight) {
-        const canvasElem = this._initCanvas(htmlDoc);
-        const htmlClientRect = canvasElem.getBoundingClientRect();
-
         /** @type {Layout} */
-        const Layout = {
+        this._defaultLayout = {
             c: canvasElem.getContext("2d"),
             htmlDoc: htmlDoc,
             htmlClientRect: htmlClientRect, // FIXME
@@ -121,11 +98,48 @@ class LayoutFactory {
                 { text: "...",  s: "normal" } ],
             spotInfo: [],
             scratchInfo: [],
-            plugScratchInfo: []
-        };
+            plugScratchInfo: [],
+            /** @type {UIColor} */
+            colorInfo: {        
+                LightBrown: "#5a3b23",
+                MediumBrown: "#4a2f1d",
+                DarkBrown: "#3a2416",
+                Metal: this._selectedMetalColor } };
 
-        return Layout;
+        this.createParticles(this._defaultLayout, this.Easy);
+    }
+
+    /** @returns {Config} */
+    get Easy() {
+        return EasyConfig;
+    }
+
+    /** @returns {Layout} */
+    get DefaultLayout() {
+        return this._defaultLayout;
+    }
+
+    createParticles(l, c) {
+        const createParticle = (innerRadius, outerRadius) => {
+            const r = innerRadius + Math.random() * (outerRadius - innerRadius);
+            const a = Math.random() * Math.PI * 2;
+            const pr = 2 + Math.random() * 2;
+            const pa = (Math.PI / 64) + Math.random() * 32 * (Math.PI / 64);
+            const f = 0.01 + Math.random() * 0.05;
+            const o = {r:r,a:a,pr:pr,pa:pa,f:f};
+            return o;
+        };
+        
+        for (let i = 0; i < c.numSpots; i++) {
+            l.spotInfo.push(createParticle(l.keywayRadius, l.tumblerRadius));
+        }
+
+        for (let i = 0; i < c.numScratches; i++) {
+            l.scratchInfo.push(createParticle(l.keywayRadius, l.tumblerRadius));
+        }
+
+        for (let i = 0; i < c.numScratches; i++) {
+            l.plugScratchInfo.push(createParticle(0, l.plugRadius));
+        }
     }
 }
-
-export { ConfigManager, LayoutFactory }

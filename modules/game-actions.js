@@ -1,6 +1,16 @@
+/** @typedef {import("./types.js").State} State */
+
+import StateManager from "./state-manager.js";
+
 export default class GameActions {
-    setContext(ctx) { // FIXME
-        this._ctx = ctx;
+    /** @param {StateManager} stateManager */
+    constructor (stateManager) {
+        /** @type {StateManager} */
+        this._stateManager = stateManager;
+    }
+
+    movePin(deltaAngle) {
+        this._stateManager.PinDeltaAngle = deltaAngle;
     }
     
     fromCommand(cmd) {
@@ -46,10 +56,7 @@ export default class GameActions {
             this._ctx.s.keyPinAngle + deltaAngle,
             250);
     }
-    movePinDirect(deltaAngle) { console.log("movePinDirect: " + deltaAngle); return;
-        this._ctx.s.pinDeltaAngle = deltaAngle;
-        this._ctx.s.needsRedraw = true;
-    }
+    
     rotateOnce() {
         this._ctx.tm.createLinearTransiton(
             (v) => { this._ctx.s.tumblerAngle = v; this._ctx.s.needsRedraw = true;},

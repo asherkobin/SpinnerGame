@@ -130,11 +130,11 @@ function drawPlug(g) {
 
     ctx.beginPath();
     ctx.arc(0, 0, g.l.plugRadius, 0, Math.PI * 2);
-    ctx.fillStyle = g.cm.UIColor.Metal.TumblerStop1;
+    ctx.fillStyle = g.l.colorInfo.Metal.TumblerStop1;
     ctx.fill();
 
     ctx.lineWidth = 2;
-    ctx.strokeStyle = g.cm.UIColor.Metal.TumblerStop3;
+    ctx.strokeStyle = g.l.colorInfo.Metal.TumblerStop3;
     ctx.stroke();
 
     // scratches
@@ -214,10 +214,10 @@ function drawCylinder(g) {
 
     ctx.beginPath();
     ctx.arc(0, 0, g.l.cylinderRadius, 0, Math.PI * 2);
-    ctx.fillStyle = g.cm.UIColor.Metal.TumblerStop1
+    ctx.fillStyle = g.l.colorInfo.Metal.TumblerStop1
     ctx.fill();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = g.cm.UIColor.Metal.TumblerStop3,
+    ctx.strokeStyle = g.l.colorInfo.Metal.TumblerStop3,
     ctx.stroke();
 
     // machining
@@ -387,7 +387,7 @@ function drawTumbler(g) {
     drawTumblerShape(g, 0);
     
     // main color
-    ctx.fillStyle = g.cm.UIColor.Metal.TumblerStop1;
+    ctx.fillStyle = g.l.colorInfo.Metal.TumblerStop1;
     ctx.fill();
 
     const surfaceInfo = {
@@ -452,7 +452,7 @@ function drawPin(g, pin, offset = 0) {
         ctx.fillStyle = "#a13b2f";
     }
     else {
-        ctx.fillStyle = g.cm.UIColor.Metal.PinStop1;
+        ctx.fillStyle = g.l.colorInfo.Metal.PinStop1;
     }
 
     ctx.fill();
@@ -579,9 +579,9 @@ function drawBackground(c) {
     const height = c.l.h;
     let gr = ctx.createLinearGradient(0, 0, 0, height);
     
-    gr.addColorStop(0, c.cm.UIColor.LightBrown);
-    gr.addColorStop(0.5, c.cm.UIColor.MediumBrown);
-    gr.addColorStop(1, c.cm.UIColor.DarkBrown);
+    gr.addColorStop(0, c.l.colorInfo.LightBrown);
+    gr.addColorStop(0.5, c.l.colorInfo.MediumBrown);
+    gr.addColorStop(1, c.l.colorInfo.DarkBrown);
     ctx.fillStyle = gr;
     ctx.fillRect(0, 0, width, height);
 

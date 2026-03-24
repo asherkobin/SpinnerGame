@@ -113,6 +113,7 @@ import GameActions from "./game-actions";
  * @property {Object} spotInfo
  * @property {Object} scratchInfo
  * @property {Object} plugScratchInfo
+ * @property {UIColor} colorInfo
  */
 
 export {};

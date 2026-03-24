@@ -1,9 +1,14 @@
 import InputEventManager from "./input-event-manager";
 import StateManager from "./state-manager";
 import  { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler, drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel }  from "./canvas";
+import SoundFactory from "./sound-factory";
+import GameActions from "./game-actions";
+import ConfigManager from "./config-manager";
 
 /** @typedef {import("./types.js").Context} Context */
 /** @typedef {import("./types.js").UserInputState} UserInputState */
+/** @typedef {import("./types.js").State} State */
+/** @typedef {import("./types.js").Layout} Layout */
 
 //
 // Contains the main loop that is called in conjuction with 
@@ -13,12 +18,16 @@ import  { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler, drawScratc
 export default class GameManager {
     /** @param {HTMLDocument} htmlDoc */
     /** @param {StateManager} stateManager */
-    
-    constructor(htmlDoc, stateManager, tempState, tempLayout) {
+    /** @param {ConfigManager} configManager */
+    /** @param {SoundFactory} soundFactory */
+    constructor(htmlDoc, stateManager, configManager, soundFactory) {
         this._inputEventManager = new InputEventManager(htmlDoc);
+        /** @type {StateManager} */
         this._stateManager = stateManager;
-        this._tempState = tempState;
-        this._tempLayout = tempLayout;
+        this._stateManager.State = stateManager.createStateFromConfig(configManager.Easy);
+        this._currentLayout = configManager.DefaultLayout;
+        this._soundFactor = soundFactory;
+        this._gameActions = new GameActions(stateManager);
     }
     
     startLoop() {
@@ -27,14 +36,12 @@ export default class GameManager {
 
         window.requestAnimationFrame(this._loopCallback);
     }
-
-    gameStages = [
-        this.getInput,
-        this.updateState,
-        this.queueSfx,
-        this.renderUI,
-        this.renderViewport ];
     
+    /**
+     * ---> MAIN LOOP <---
+     * 
+     * @param {number} timeStamp 
+     */
     mainLoop(timeStamp) {
         const timeNow = timeStamp;
         const timeLast = (this._savedTimeStamp == 0) ? timeStamp : this._savedTimeStamp;
@@ -42,7 +49,6 @@ export default class GameManager {
 
         this.getInput(timeDelta);
         this.updateState(timeDelta);
-        this.queueSfx(timeDelta);
         this.renderUI(timeDelta);
         this.renderViewport(timeDelta);
 
@@ -56,24 +62,6 @@ export default class GameManager {
         this._inputState = this._inputEventManager.getState(dT);
     }
 
-    updateState(dT) {
-        if (this._inputState.leftKey) {
-            if (this._inputState.leftKeyPress == "short") {
-                this._stateManager.updatePinDeltaAngle(0.005);
-            }
-            else if (this._inputState.leftKeyPress == "medium") {
-                this._stateManager.updatePinDeltaAngle(0.010);
-            }
-            if (this._inputState.leftKeyPress == "long") {
-                this._stateManager.updatePinDeltaAngle(0.050);
-            }
-        }
-    }
-
-    queueSfx(dT) {
-        // TBD
-    }
-
     renderUI(dT) {
         // TBD
     }
@@ -81,9 +69,9 @@ export default class GameManager {
     renderViewport(dT) {
         const updateRegions =  this._stateManager.getUpdateRegions();
         const g = {
-            l: this._tempLayout,
-            s: this._tempState,
-            cm: this._tempCM
+
+            l: this._currentLayout,
+            s: this._stateManager.State
         }
         
         if (updateRegions.length > 0) {
@@ -98,6 +86,43 @@ export default class GameManager {
             drawButtonPanel(g);
 
             this._stateManager.clearUpdateRegions();
+        }
+    }
+
+    /**
+     * @param {number} dT 
+     */
+    updateState(dT) {
+        if (this._inputState.leftKey) {
+            let deltaAngle = 0;
+            switch (this._inputState.leftKeyPress) {
+                case "short":
+                    deltaAngle = 0.005;
+                    break;
+                case "medium":
+                    deltaAngle = 0.010;
+                    break;
+                case "long":
+                    deltaAngle = 0.050;
+                    break;
+            }
+            this._gameActions.movePin(deltaAngle);
+        }
+
+        if (this._inputState.rightKey) {
+            let deltaAngle = 0;
+            switch (this._inputState.rightKeyPress) {
+                case "short":
+                    deltaAngle = -0.005;
+                    break;
+                case "medium":
+                    deltaAngle = -0.010;
+                    break;
+                case "long":
+                    deltaAngle = -0.050;
+                    break;
+            }
+            this._gameActions.movePin(deltaAngle);
         }
     }
 }
