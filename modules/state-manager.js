@@ -7,12 +7,20 @@
 
 export default class StateManager {
     /**
-     * Creates New State
+     * Constructor
      * 
      * @param {Config} gameConfig
      */
     constructor(gameConfig) {
-        const pinStates = this._initPinStates(gameConfig.keyPins);
+        this._gameConfig = gameConfig;
+        
+        this.reloadFromConfig();
+    }
+
+    _updateRegions = [1];
+
+    reloadFromConfig() {
+        const pinStates = this._initPinStates(this._gameConfig.keyPins);
 
         /** @type {State} */
         this._currentState = {
@@ -30,9 +38,16 @@ export default class StateManager {
 
         this._pinIterator = pinStates.values();
         this._currentState.activePin = this._pinIterator.next().value;
+
+        this.invalidateAll();
     }
 
-    _updateRegions = [1];
+    invalidateAll() {
+        this._updateRegions.push(1);
+    }
+
+    loadFromObject(serializedObject) {
+    }
 
     /**
      * (NYI) Returns the regions that need updating due to state changes
@@ -70,12 +85,12 @@ export default class StateManager {
 
     insertPin(pinToInsert) {
         pinToInsert.i = true;
-        this._updateRegions.push(1);
+        this.invalidateAll();
     }
 
     activateNextPin() {
         this._currentState.activePin = this._pinIterator.next().value;
-        this._updateRegions.push(1);
+        this.invalidateAll();
     }
 
     get PinDeltaAngle() {
@@ -83,7 +98,7 @@ export default class StateManager {
     }
     set PinDeltaAngle(dTheta) {
         this._currentState.pinDeltaAngle = dTheta;
-        this._updateRegions.push(1);
+        this.invalidateAll();
     }
 
     get ActivePin() {
@@ -92,5 +107,9 @@ export default class StateManager {
 
     get TumblerAngle() {
         return this._currentState.tumblerAngle;
+    }
+    set TumblerAngle(v) {
+        this._currentState.tumblerAngle = v;
+        this.invalidateAll();
     }
 }

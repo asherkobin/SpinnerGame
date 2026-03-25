@@ -53,8 +53,19 @@ export default class SoundFactory {
     playError() {
         this._startBuf(this._errorBuf);
     }
-    
+
+    startRotationLoop() {
+        this._loopSrc = this._startBuf(this._rotateBuf, true);
+    }
+
     stopRotationLoop() {
+        if (this._loopSrc) {
+            this._loopSrc.stop();
+            this._loopSrc = null;
+        }
+    }
+    
+    stopRotationLoopWithRamp() {
         if (this._loopSrc) {
             this._loopSrc.playbackRate.linearRampToValueAtTime(0, this._ctx.currentTime + 0.05);
             this._loopSrc.stop(this._ctx.currentTime + 0.05);
@@ -62,7 +73,7 @@ export default class SoundFactory {
         }
     }
     
-    startRotationLoop() {
+    startRotationLoopWithRamp() {
         if (this._loopSrc) {
             this._loopSrc.stop();
         }

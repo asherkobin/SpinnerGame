@@ -5,6 +5,7 @@
 
 import StateManager from "./state-manager.js";
 import SoundFactory from "./sound-factory.js";
+import TransitionManager from "./transition-manager.js";
 
 export default class GameLogicHelper {
     /**
@@ -24,6 +25,8 @@ export default class GameLogicHelper {
         this._currentLayout = currentLayout;
         /** @type {SoundFactory} */
         this._soundFactory = soundFactory;
+        /** @type {TransitionManager} */
+        this._transitionManager = new TransitionManager();
     }
     
     /**
@@ -33,11 +36,15 @@ export default class GameLogicHelper {
      * @param {number} dT
      */
     _transformInputToCommand(userInput, dT) {
-        const buttonInfo = this._objectFromPoint(userInput.pointerX, userInput.pointerY);
-
         if (userInput.pointerClick != "none") {
-            console.log("button: " + buttonInfo);
+            const buttonInfo = this._objectFromPoint(userInput.pointerX, userInput.pointerY);
+            
+            if (buttonInfo) {
+                return buttonInfo.text;
+            }
         }
+
+        return null;
     }
 
     /** @returns {object} */
@@ -48,10 +55,11 @@ export default class GameLogicHelper {
             const by = this._currentLayout.bpy + b.y;
             const bw = b.w;
             const bh = this._currentLayout.bh;
-            const pointInButton = x >= bx && x <= bx + bw && y >= by && y <= by + bh;
-
-            return pointInButton;
+            
+            return (x >= bx && x <= bx + bw && y >= by && y <= by + bh);
         });
+
+        return foundButton ?? null;
     }
 
     /**
@@ -62,7 +70,13 @@ export default class GameLogicHelper {
      */
     updateGameState(userInput, dT)
     {
-        this._transformInputToCommand(userInput, dT);
+        const uiCommand = this._transformInputToCommand(userInput, dT);
+
+        if (uiCommand) {
+            this.runCommand(uiCommand);
+        }
+
+        this._transitionManager.handleTimeChange(dT);
         
         if (userInput.leftKey) {
             let deltaAngle = 0;
@@ -121,8 +135,8 @@ export default class GameLogicHelper {
         this._stateManager.PinDeltaAngle = deltaAngle;
     }
     
-    fromCommand(cmd) {
-        switch (cmd) {
+    runCommand(uiCommand) {
+        switch (uiCommand) {
             case "Connect":
                 // BLE HERE this.connectToController();
                 break;
@@ -138,25 +152,28 @@ export default class GameLogicHelper {
         }
     }
     resetGame() {
-        this._ctx.f.stopAll();
-        this._ctx.l.buttonInfo[1].text = "Start"; // FIXME
-        this._ctx.tm.removeAll();
-        this._ctx.s = this._ctx.sm.createStateFromConfig(this._ctx.g);
+        this._soundFactory.stopAll();
+        this._currentLayout.buttonInfo[1].text = "Start"; // FIXME
+        this._transitionManager.removeAll();
+        this._stateManager.reloadFromConfig();
     }
-    startTumbler() {
-        this._ctx.s.ttid = this._ctx.tm.createRotatingTransiton(
-            (v) => { this._ctx.s.tumblerAngle = v; this._ctx.s.needsRedraw = true; },
-            this._ctx.s.tumblerAngle,
-            this._ctx.g.tumblerVelocity);
 
-        this._ctx.l.buttonInfo[1].text = "Stop"; // FIXME
-        this._ctx.f.startRotationLoop();
+    startTumbler() {
+        this._tmid = this._transitionManager.createRotatingTransiton(
+            v => this._stateManager.TumblerAngle = v,
+            this._stateManager.TumblerAngle,
+            this._currentConfig.tumblerVelocity);
+
+        this._currentLayout.buttonInfo[1].text = "Stop"; // FIXME
+        this._soundFactory.startRotationLoop();
     }
+    
     stopTumbler() {
-        this._ctx.tm.stopAndRemove(this._ctx.s.ttid);
-        this._ctx.l.buttonInfo[1].text = "Start"; // FIXME
-        this._ctx.f.stopRotationLoop();
+        this._transitionManager.stopAndRemove(this._tmid);
+        this._currentLayout.buttonInfo[1].text = "Start"; // FIXME
+        this._soundFactory.stopRotationLoop();
     }
+    
     animatePin(deltaAngle) {
         this._ctx.tm.createLinearTransiton(
             (v) => { this._ctx.s.keyPinAngle = v; this._ctx.s.needsRedraw = true; },

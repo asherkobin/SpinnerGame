@@ -146,8 +146,8 @@ export default class InputEventManager {
     }
         
     _mouseMove = (e) => {
-        this._pointerX = e.clientX;
-        this._pointerY = e.clientY;
+       // this._pointerX = e.clientX;
+       // this._pointerY = e.clientY;
     }
     
     _mouseDown = (e) => {
@@ -157,8 +157,8 @@ export default class InputEventManager {
     }
 
     _mouseUp = (e) => {
-        this._pointerX = e.clientX;
-        this._pointerY = e.clientY;
+      //  this._pointerX = e.clientX;
+       // this._pointerY = e.clientY;
         this._pointerButton = false;
     }
 }
