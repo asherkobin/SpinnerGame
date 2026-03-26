@@ -5,6 +5,7 @@
 export default class SoundFactory {
     _ctx = new AudioContext();
     _loopSrc = null;
+    _isPrimed = false;
     
     async initBuffers() {
         this._nudgeBuf = await this._getBuf("Audio/nudge.wav");
@@ -29,9 +30,23 @@ export default class SoundFactory {
         s.buffer = b;
         s.loop = loop;
         s.connect(this._ctx.destination);
-        s.start();
+        s.start(this._ctx.currentTime);
         
         return s;
+    }
+
+    primeAudio() {
+        if (!this._isPrimed) {
+            this._ctx.resume();
+
+            const s = this._ctx.createBufferSource();
+            
+            s.buffer = this._ctx.createBuffer(1, 1, this._ctx.sampleRate);
+            s.connect(this._ctx.destination);
+            s.start();
+
+            this._isPrimed = true;
+        }
     }
     
     stopAll() {

@@ -203,7 +203,7 @@ function drawCylinder(g) {
     ctx.save();
     ctx.translate(g.l.x, g.l.y);
 
-    if (g.s.allPinsInserted) {
+    if (g.s.Win) {
         ctx.save();
         ctx.rotate(g.s.tumblerAngle);
     }
@@ -243,6 +243,11 @@ function drawCylinder(g) {
     ctx.lineWidth = 1;
     ctx.textAlign = "center";
     ctx.strokeText("Kobin", logoW / 2, logoH - 5);
+
+    if (g.s.Win) {
+        ctx.fillStyle = "black";
+        ctx.fillText("Kobin", logoW / 2, logoH - 5);
+    }
     ctx.restore();
 
     ctx.save();
@@ -261,7 +266,7 @@ function drawCylinder(g) {
     ctx.arc(1, 15, g.l.plugRadius + 2, 0, 2 * Math.PI);
     ctx.stroke();
 
-    if (g.s.allPinsInserted) {
+    if (g.s.Win) {
         ctx.restore();
     }
 
@@ -349,10 +354,10 @@ function drawTumblerShape(g, offset) {
 
     ctx.moveTo(tumblerRadius, 0);
 
-    g.s.pinStates.forEach(p => {
-        const startAngle = p.ca + offset * 0.01;
-        const endAngle = startAngle + p.w - offset * 0.01;
-        const cutDepth = tumblerRadius - p.r;
+    g.s.Pins.forEach(p => {
+        const startAngle = p.CutAngle + offset * 0.01;
+        const endAngle = startAngle + p.Width - offset * 0.01;
+        const cutDepth = tumblerRadius - p.Radius;
         
         ctx.arc(0, 0, tumblerRadius, curAngle, startAngle);
         ctx.lineTo(...pointOnCircle(0, 0, cutDepth, startAngle));
@@ -428,25 +433,20 @@ function drawTumbler(g) {
 }
 
 function drawPins(g) {
-    g.s.pinStates.forEach(p => {
-        p.a += g.s.pinDeltaAngle;
+    g.s.Pins.forEach(p => {
+        p.Angle += g.s.pinDeltaAngle;
 
         drawPin(g, p);
     });
 }
 
-/**
- * Draws Pin
- * 
- * @param {Context} g 
- */
 function drawPin(g, pin, offset = 0) {
     const ctx = g.l.c;
     const pinWedge = calculatePinWedge(g, pin, 0);
     
     drawPinShape(g, pinWedge);
 
-    if (pin.m) {
+    if (pin.Miss) { // FIXME
         ctx.fillStyle = "#a13b2f";
     }
     else {
@@ -473,7 +473,7 @@ function drawPin(g, pin, offset = 0) {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    if (pin == g.s.activePin && !pin.i) {
+    if (pin == g.s.activePin && !pin.Inserted) {
         const localCtx = { 
             sa: pinWedge.sa,
             ea: pinWedge.ea,
@@ -487,23 +487,23 @@ function drawPin(g, pin, offset = 0) {
 function calculatePinWedge(g, pin, offset) {
     const pinWedge = {};
     let keyPinInnerRadius = g.l.tumblerRadius + g.l.tumblerSpacing - offset;
-    let keyPinOuterRadius = keyPinInnerRadius + pin.r - 6 + offset;
+    let keyPinOuterRadius = keyPinInnerRadius + pin.Radius - 6 + offset;
 
-    if (pin.i) {
-        keyPinInnerRadius = g.l.tumblerRadius - pin.r + 7;
+    if (pin.Inserted) {
+        keyPinInnerRadius = g.l.tumblerRadius - pin.Radius + 7;
         keyPinOuterRadius = g.l.tumblerRadius + 1;
 
-        pin.a = g.s.tumblerAngle + pin.ca;
+        pin.Angle = g.s.tumblerAngle + pin.CutAngle;
     }
 
-    let startAngle = pin.a - offset * 0.005;
-    let endAngle = startAngle + pin.w + offset * 0.005;
+    let startAngle = pin.Angle - offset * 0.005;
+    let endAngle = startAngle + pin.Width + offset * 0.005;
 
     // adjust for padding
 
     const paddingAngle = 1 * Math.PI / 180; // one degree
     
-    if (pin.i) {
+    if (pin.Inserted) {
         startAngle += 4 * paddingAngle;
         endAngle -= 3 * paddingAngle;
     }

@@ -1,5 +1,6 @@
 /** @typedef {import("./types.js").State} State */
 /** @typedef {import("./types.js").Config} Config */
+/** @typedef {import("./types.js").PinInfo} PinInfo */
 
 //
 // state manager
@@ -14,30 +15,28 @@ export default class StateManager {
     constructor(gameConfig) {
         this._gameConfig = gameConfig;
         
-        this.reloadFromConfig();
+        this.loadFromConfig();
     }
 
     _updateRegions = [1];
 
-    reloadFromConfig() {
-        const pinStates = this._initPinStates(this._gameConfig.keyPins);
-
+    loadFromConfig() {
         /** @type {State} */
         this._currentState = {
             tumblerAngle: 0,
             lastTime: 0,
             pinDeltaAngle: 0,
-            pinStates: pinStates,
             lastLeftKeyDown: 0,
             lastRightKeyDown: 0,
             allPinsInserted: false,
             plugAngle: 0,
             needsRedraw: true,
-            activePin: null
+            activePinIdx: -1,
+            Pins: this._createPins(this._gameConfig.keyPins),
+            Win: false
         }
 
-        this._pinIterator = pinStates.values();
-        this._currentState.activePin = this._pinIterator.next().value;
+        this.activateNextPin();
 
         this.invalidateAll();
     }
@@ -65,32 +64,59 @@ export default class StateManager {
         this._updateRegions.length = 0;
     }
 
-    _initPinStates(pinConfig) {
+    _createPins(pinConfig) {
         const pinStates = [];
 
         pinConfig.forEach(p => {
-            const pinState = {
-                w: p.widthDeg * Math.PI / 180,
-                a: p.startDeg * Math.PI / 180,
-                r: p.depthPx,
-                i: false };
+            /** @type {PinInfo} */
+            const pinInfo = {
+                Width: p.widthDeg * Math.PI / 180,
+                Angle: p.startDeg * Math.PI / 180,
+                CutAngle: p.startDeg * Math.PI / 180,
+                Radius: p.depthPx,
+                Inserted: false
+            }
 
-            pinState.ca = pinState.a;
-
-            pinStates.push(pinState);
+            pinStates.push(pinInfo);
         });
 
         return pinStates;
     }
 
-    insertPin(pinToInsert) {
-        pinToInsert.i = true;
+     /**
+     * Inserts pin into cut
+     * 
+     * @param {PinInfo} pinInfo
+     */
+    insertPin(pinInfo) {
+        pinInfo.Inserted = true;
         this.invalidateAll();
     }
 
     activateNextPin() {
-        this._currentState.activePin = this._pinIterator.next().value;
+        const activePinIdx = this._currentState.activePinIdx;
+        const numPins = this._currentState.Pins.length;
+
+        if (numPins > 0) {
+            if (activePinIdx == -1) {
+                this._currentState.activePinIdx = 0;
+            }
+            else if (this._currentState.activePinIdx + 1 < numPins) {
+                this._currentState.activePinIdx++;
+            }
+            else {
+                this._currentState.activePinIdx = -1;
+            }
+        }
+        else {
+            this._currentState.activePinIdx = -1;
+        }
+
         this.invalidateAll();
+    }
+
+    areAllPinsInserted() {
+        return this._currentState.Pins.every(p => p.Inserted);
     }
 
     get PinDeltaAngle() {
@@ -102,7 +128,7 @@ export default class StateManager {
     }
 
     get ActivePin() {
-        return this._currentState.activePin;
+        return this._currentState.Pins[this._currentState.activePinIdx];
     }
 
     get TumblerAngle() {
@@ -111,5 +137,16 @@ export default class StateManager {
     set TumblerAngle(v) {
         this._currentState.tumblerAngle = v;
         this.invalidateAll();
+    }
+
+    get Win() {
+        return this._currentState.Win;
+    }
+
+    set Win(v) {
+        if (this._currentState.Win != v) {
+            this._currentState.Win = v;
+            this.invalidateAll(); // TODO: only invalidate if value changes (for all state values)
+        }
     }
 }

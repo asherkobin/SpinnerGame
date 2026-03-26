@@ -104,10 +104,10 @@ export default class InputEventManager {
         if (holdTime == 0) {
             return "none";
         }
-        else if (holdTime > 0 && holdTime < 250) {
+        else if (holdTime > 0 && holdTime < 500) {
             return "short";
         }
-        else if (holdTime >= 250 && holdTime < 500) {
+        else if (holdTime >= 500 && holdTime < 1000) {
             return "medium";
         }
         else {

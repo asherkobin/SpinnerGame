@@ -3,7 +3,7 @@ import StateManager from "./state-manager.js";
 import { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler }  from "./canvas.js";
 import { drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel }  from "./canvas.js";
 import SoundFactory from "./sound-factory.js";
-import GameLogicHelper from "./game-logic-helper.js";
+import LogicHelper from "./logic-helper.js";
 import ConfigManager from "./config-manager.js";
 
 /** @typedef {import("./types.js").Config} Config */
@@ -40,14 +40,18 @@ export default class GameManager {
         this._currentConfig = configManager.Easy;
         /** @type {Layout} */
         this._currentLayout = configManager.DefaultLayout;
-        /** @type {GameLogicHelper} */
-        this._logicHelper = new GameLogicHelper(
+        /** @type {LogicHelper} */
+        this._logicHelper = new LogicHelper(
             this._stateManager,
             this._currentConfig,
             this._currentLayout,
             this._soundFactory);
 
         this._lastInsertionResult = "unknown";
+
+        // TEMP FIX
+        htmlDoc.addEventListener("pointerdown", soundFactory.primeAudio.bind(soundFactory), { once: true });
+        htmlDoc.addEventListener("keydown", soundFactory.primeAudio.bind(soundFactory), { once: true });
     }
     
     startLoop() {

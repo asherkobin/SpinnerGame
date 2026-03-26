@@ -29,17 +29,27 @@
  */
 
 /**
+ * @typedef {Object} PinInfo
+ * @property {number} Width angular width
+ * @property {number} Angle midpoint of wedge
+ * @property {number} CutAngle midpoint of cut
+ * @property {number} Radius radial width
+ * @property {boolean} Inserted pin wedge is in cut
+ */
+
+/**
  * @typedef {Object} State
  * @property {number} tumblerAngle
  * @property {number} lastTime
  * @property {number} pinDeltaAngle
- * @property {Object} pinStates
  * @property {number} lastLeftKeyDown
  * @property {number} lastRightKeyDown
  * @property {boolean} allPinsInserted
  * @property {number} plugAngle
  * @property {boolean} needsRedraw
- * @property {Object} activePin
+ * @property {number} activePinIdx
+ * @property {PinInfo[]} Pins
+ * @property {boolean} Win
  */
 
 /**

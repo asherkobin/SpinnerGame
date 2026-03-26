@@ -1,3 +1,5 @@
+DEPRECATED();
+
 import { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler } from "./canvas.js";
 import { drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel } from "./canvas.js"
 
