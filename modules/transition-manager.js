@@ -68,6 +68,10 @@ export default class TransitionManager {
     }
 
     handleTimeChange(deltaTime) {
+        if (this._transitionList.length > 10) {
+            throw new Error("Too Many Transitions");
+        }
+        
         this._transitionList.forEach(t => {
             if (!t.isCompleted) {
                 // infinite

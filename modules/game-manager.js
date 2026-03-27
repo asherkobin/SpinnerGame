@@ -29,8 +29,8 @@ export default class GameManager {
         /** @type {InputEventManager} */
         this._inputEventManager = new InputEventManager(
             htmlDoc,
-            configManager.DefaultLayout.htmlClientRect.x,
-            configManager.DefaultLayout.htmlClientRect.y
+            configManager.Layout.htmlClientRect.x,
+            configManager.Layout.htmlClientRect.y
         );
         /** @type {StateManager} */
         this._stateManager = stateManager;
@@ -39,7 +39,7 @@ export default class GameManager {
         /** @type {Config} */
         this._currentConfig = configManager.Easy;
         /** @type {Layout} */
-        this._currentLayout = configManager.DefaultLayout;
+        this._currentLayout = configManager.Layout;
         /** @type {LogicHelper} */
         this._logicHelper = new LogicHelper(
             this._stateManager,

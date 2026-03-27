@@ -30,11 +30,12 @@
 
 /**
  * @typedef {Object} PinInfo
- * @property {number} Width angular width
- * @property {number} Angle midpoint of wedge
- * @property {number} CutAngle midpoint of cut
- * @property {number} Radius radial width
- * @property {boolean} Inserted pin wedge is in cut
+ * @property {number} AngularWidth
+ * @property {number} RadialWidth
+ * @property {number} RadialDistance
+ * @property {number} AngularPosition
+ * @property {number} CutPosition
+ * @property {boolean} PositionLocked
  */
 
 /**

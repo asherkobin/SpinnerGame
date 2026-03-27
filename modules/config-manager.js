@@ -69,7 +69,7 @@ export default class ConfigManager
         htmlDoc.body.appendChild(canvasElem);
 
         /** @type {Layout} */
-        this._defaultLayout = {
+        this._layoutConfig = {
             c: canvasElem.getContext("2d"),
             htmlDoc: htmlDoc,
             htmlClientRect: canvasElem.getBoundingClientRect(),
@@ -106,7 +106,7 @@ export default class ConfigManager
                 DarkBrown: "#3a2416",
                 Metal: this._selectedMetalColor } };
 
-        this.createParticles(this._defaultLayout, this.Easy);
+        this.createParticles(this._layoutConfig, this.Easy);
     }
 
     /** @returns {Config} */
@@ -115,8 +115,8 @@ export default class ConfigManager
     }
 
     /** @returns {Layout} */
-    get DefaultLayout() {
-        return this._defaultLayout;
+    get Layout() {
+        return this._layoutConfig;
     }
 
     createParticles(l, c) {

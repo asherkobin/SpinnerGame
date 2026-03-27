@@ -12,7 +12,7 @@ async function startGame(htmlDoc) {
     const soundFactory = new SoundFactory();
     const configManager = new ConfigManager(htmlDoc, 350, 640);
     const currentConfig = configManager.Easy;
-    const stateManager = new StateManager(currentConfig);
+    const stateManager = new StateManager(currentConfig, configManager.Layout);
     const transitionManager = new TransitionManager();
     const gameManager = new GameManager(
         htmlDoc,

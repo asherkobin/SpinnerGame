@@ -14,16 +14,16 @@ export default class LogicHelper {
      * 
      * @param {StateManager} stateManager
      * @param {Config} currentConfig
-     * @param {Layout} currentLayout
+     * @param {Layout} uiLayout
      * @param {SoundFactory} soundFactory
      */
-    constructor (stateManager, currentConfig, currentLayout, soundFactory) {
+    constructor (stateManager, currentConfig, uiLayout, soundFactory) {
         /** @type {StateManager} */
         this._stateManager = stateManager;
         /** @type {Config} */
         this._currentConfig = currentConfig;
         /** @type {Layout} */
-        this._currentLayout = currentLayout;
+        this._uiLayout = uiLayout;
         /** @type {SoundFactory} */
         this._soundFactory = soundFactory;
         /** @type {TransitionManager} */
@@ -54,11 +54,11 @@ export default class LogicHelper {
     /** @returns {object} */
     _objectFromPoint(x, y) {
         // search for button
-        const foundButton = this._currentLayout.buttonInfo.find(b => {
-            const bx = this._currentLayout.bpx + b.x;
-            const by = this._currentLayout.bpy + b.y;
+        const foundButton = this._uiLayout.buttonInfo.find(b => {
+            const bx = this._uiLayout.bpx + b.x;
+            const by = this._uiLayout.bpy + b.y;
             const bw = b.w;
-            const bh = this._currentLayout.bh;
+            const bh = this._uiLayout.bh;
             
             return (x >= bx && x <= bx + bw && y >= by && y <= by + bh);
         });
@@ -86,9 +86,10 @@ export default class LogicHelper {
         this.runCommand(this._transformInputToCommand(userInput, dT));
 
         this._transitionManager.handleTimeChange(dT);
+
+        let deltaAngle = 0;
         
         if (userInput.leftKey) {
-            let deltaAngle = 0;
             switch (userInput.leftKeyPress) {
                 case "short":
                     deltaAngle = 0.005;
@@ -100,11 +101,9 @@ export default class LogicHelper {
                     deltaAngle = 0.050;
                     break;
             }
-            this.movePin(deltaAngle);
         }
 
         if (userInput.rightKey) {
-            let deltaAngle = 0;
             switch (userInput.rightKeyPress) {
                 case "short":
                     deltaAngle = -0.005;
@@ -116,18 +115,22 @@ export default class LogicHelper {
                     deltaAngle = -0.050;
                     break;
             }
-            this.movePin(deltaAngle);
         }
+
+        this._stateManager.PinDeltaAngle = deltaAngle;
 
         this._lastInsertionTime += dT;
 
         if (userInput.upKey) {
             if (this._lastInsertionTime > this._maxWaitTime) {
                 const insertionResult = this.tryInsertPin();
+                const activePin = this._stateManager.ActivePin;
 
                 if (insertionResult == "succeed") {
                     this._soundFactory.playInsert();
-                    this._stateManager.activateNextPin();
+                    activePin.AngularPosition = activePin.CutPosition;
+                    activePin.PositionLocked = true;
+                    this.animatePinInsertion();
                     this._lastInsertionTime = 0;
                 }
                 else if (insertionResult == "fail") {
@@ -138,14 +141,11 @@ export default class LogicHelper {
         }
     }
 
-    movePin(deltaAngle) {
-        this._stateManager.PinDeltaAngle = deltaAngle;
-    }
-    
     runCommand(uiCommand) {
         switch (uiCommand) {
             case "Connect":
-                // BLE HERE this.connectToController();
+                //this.animatePin();
+                this.rotateOnce();
                 break;
             case "Start":
                 this.startTumbler()
@@ -182,16 +182,11 @@ export default class LogicHelper {
         }
         else {
             const canInsert = isKeyPinInCut(
-                activePin.Angle,
-                this._stateManager.TumblerAngle + activePin.CutAngle,
+                activePin.AngularPosition,
+                this._stateManager.TumblerAngle + activePin.CutPosition,
                 this._currentConfig.matchTolerance);
             
-            activePin.Angle = canInsert ? this._stateManager.TumblerAngle : activePin.Angle; // align if inserted
-            
             if (canInsert) {
-                this._stateManager.insertPin(this._stateManager.ActivePin);
-                //this.shakeKeyPlug();
-
                 return "succeed";
             }
             else {
@@ -202,7 +197,7 @@ export default class LogicHelper {
 
     resetGame() {
         this._soundFactory.stopAll();
-        this._currentLayout.buttonInfo[1].text = "Start"; // FIXME
+        this._uiLayout.buttonInfo[1].text = "Start"; // FIXME
         this._transitionManager.removeAll();
         this._stateManager.loadFromConfig();
     }
@@ -213,32 +208,35 @@ export default class LogicHelper {
             this._stateManager.TumblerAngle,
             this._currentConfig.tumblerVelocity);
 
-        this._currentLayout.buttonInfo[1].text = "Stop"; // FIXME
+        this._uiLayout.buttonInfo[1].text = "Stop"; // FIXME
         this._soundFactory.startRotationLoop();
     }
     
     stopTumbler() {
         this._transitionManager.stopAndRemove(this._tmid);
-        this._currentLayout.buttonInfo[1].text = "Start"; // FIXME
+        this._uiLayout.buttonInfo[1].text = "Start"; // FIXME
         this._soundFactory.stopRotationLoop();
     }
-    
-    animatePin(deltaAngle) {
-        this._ctx.tm.createLinearTransiton(
-            (v) => { this._ctx.s.keyPinAngle = v; this._ctx.s.needsRedraw = true; },
-            this._ctx.s.keyPinAngle,
-            this._ctx.s.keyPinAngle + deltaAngle,
-            250);
-    }
-    
+
     rotateOnce() {
-        this._ctx.tm.createLinearTransiton(
-            (v) => { this._ctx.s.tumblerAngle = v; this._ctx.s.needsRedraw = true;},
-            this._ctx.s.tumblerAngle,
-            this._ctx.s.tumblerAngle + 2 * Math.PI,
+        this._transitionManager.createLinearTransiton(
+            v => { this._stateManager.TumblerAngle = v },
+            this._stateManager.TumblerAngle,
+            this._stateManager.TumblerAngle + 2 * Math.PI,
             2000,
-            () => { console.log("rotateOnce complete"); });
+            () => {  });
     }
+    
+    animatePinInsertion() {
+        this._transitionManager.createLinearTransiton(
+            v => { this._stateManager.ActivePin.RadialDistance = v; this._stateManager.invalidateAll() },
+            this._stateManager.ActivePin.RadialDistance,
+            this._uiLayout.tumblerRadius - (this._stateManager.ActivePin.RadialWidth - 7),
+            250,
+            () => { 
+                this._stateManager.activateNextPin(); });
+    }
+    
     shakeKeyPlug() {
         return;
         this._ctx.tm.createLinearTransiton(

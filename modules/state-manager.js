@@ -1,5 +1,6 @@
 /** @typedef {import("./types.js").State} State */
 /** @typedef {import("./types.js").Config} Config */
+/** @typedef {import("./types.js").Layout} Layout */
 /** @typedef {import("./types.js").PinInfo} PinInfo */
 
 //
@@ -12,8 +13,11 @@ export default class StateManager {
      * 
      * @param {Config} gameConfig
      */
-    constructor(gameConfig) {
+    constructor(gameConfig, uiLayout) {
+        /** @type {Config} */
         this._gameConfig = gameConfig;
+        /** @type {Layout} */
+        this._uiLayout = uiLayout;
         
         this.loadFromConfig();
     }
@@ -70,27 +74,18 @@ export default class StateManager {
         pinConfig.forEach(p => {
             /** @type {PinInfo} */
             const pinInfo = {
-                Width: p.widthDeg * Math.PI / 180,
-                Angle: p.startDeg * Math.PI / 180,
-                CutAngle: p.startDeg * Math.PI / 180,
-                Radius: p.depthPx,
-                Inserted: false
+                AngularWidth: p.widthDeg * Math.PI / 180,
+                RadialWidth: p.depthPx,
+                RadialDistance: this._uiLayout.tumblerRadius + this._uiLayout.tumblerSpacing,
+                AngularPosition: p.startDeg * Math.PI / 180,
+                CutPosition: p.startDeg * Math.PI / 180,
+                PositionLocked: false,
             }
 
             pinStates.push(pinInfo);
         });
 
         return pinStates;
-    }
-
-     /**
-     * Inserts pin into cut
-     * 
-     * @param {PinInfo} pinInfo
-     */
-    insertPin(pinInfo) {
-        pinInfo.Inserted = true;
-        this.invalidateAll();
     }
 
     activateNextPin() {

@@ -1,3 +1,5 @@
+/** @typedef {import("./types.js").PinInfo} PinInfo */
+
 //
 // canvas draw routines
 //
@@ -354,10 +356,10 @@ function drawTumblerShape(g, offset) {
 
     ctx.moveTo(tumblerRadius, 0);
 
-    g.s.Pins.forEach(p => {
-        const startAngle = p.CutAngle + offset * 0.01;
-        const endAngle = startAngle + p.Width - offset * 0.01;
-        const cutDepth = tumblerRadius - p.Radius;
+    g.s.Pins.forEach((/** @type {PinInfo} p */ p) => {
+        const startAngle = p.CutPosition + offset * 0.01;
+        const endAngle = startAngle + p.AngularWidth - offset * 0.01;
+        const cutDepth = tumblerRadius - p.RadialWidth;
         
         ctx.arc(0, 0, tumblerRadius, curAngle, startAngle);
         ctx.lineTo(...pointOnCircle(0, 0, cutDepth, startAngle));
@@ -433,14 +435,15 @@ function drawTumbler(g) {
 }
 
 function drawPins(g) {
-    g.s.Pins.forEach(p => {
-        p.Angle += g.s.pinDeltaAngle;
+    g.s.Pins.forEach((/** @type {PinInfo} p */ p, idx) => {
+        p.AngularPosition += g.s.pinDeltaAngle;
 
-        drawPin(g, p);
+        drawPin(g, p, idx == g.s.activePinIdx);
     });
 }
 
-function drawPin(g, pin, offset = 0) {
+/** @param {PinInfo} pin */
+function drawPin(g, pin, selected = false) {
     const ctx = g.l.c;
     const pinWedge = calculatePinWedge(g, pin, 0);
     
@@ -473,7 +476,7 @@ function drawPin(g, pin, offset = 0) {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    if (pin == g.s.activePin && !pin.Inserted) {
+    if (selected) {
         const localCtx = { 
             sa: pinWedge.sa,
             ea: pinWedge.ea,
@@ -484,33 +487,25 @@ function drawPin(g, pin, offset = 0) {
     }
 }
 
+/** @param {PinInfo} pin */
 function calculatePinWedge(g, pin, offset) {
     const pinWedge = {};
-    let keyPinInnerRadius = g.l.tumblerRadius + g.l.tumblerSpacing - offset;
-    let keyPinOuterRadius = keyPinInnerRadius + pin.Radius - 6 + offset;
+    let keyPinInnerRadius = pin.RadialDistance - offset;
+    let keyPinOuterRadius = keyPinInnerRadius + pin.RadialWidth - 6 + offset;
 
-    if (pin.Inserted) {
-        keyPinInnerRadius = g.l.tumblerRadius - pin.Radius + 7;
-        keyPinOuterRadius = g.l.tumblerRadius + 1;
-
-        pin.Angle = g.s.tumblerAngle + pin.CutAngle;
+    if (pin.PositionLocked) {
+        pin.AngularPosition = g.s.tumblerAngle + pin.CutPosition;
     }
 
-    let startAngle = pin.Angle - offset * 0.005;
-    let endAngle = startAngle + pin.Width + offset * 0.005;
+    let startAngle = pin.AngularPosition - offset * 0.005;
+    let endAngle = startAngle + pin.AngularWidth + offset * 0.005;
 
     // adjust for padding
 
     const paddingAngle = 1 * Math.PI / 180; // one degree
     
-    if (pin.Inserted) {
-        startAngle += 4 * paddingAngle;
-        endAngle -= 3 * paddingAngle;
-    }
-    else {
-        startAngle += 5 * paddingAngle;
-        endAngle -= 5 * paddingAngle;
-    }
+    startAngle += 3 * paddingAngle;
+    endAngle -= 2 * paddingAngle;
 
     pinWedge.sa = startAngle;
     pinWedge.ea = endAngle;
