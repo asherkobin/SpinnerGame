@@ -67,6 +67,29 @@ export default class TransitionManager {
         this._transitionList = this._transitionList.filter(i => i.__uid !== tid);
     }
 
+    _assertEqual(v1, v2) {
+        if (v1 !== v2) {
+            throw new Error(`Expected Equals: [${v1}] != [${v2}]`);
+        }
+    }
+
+    _assertInRange(v, l, h){
+        if (v < l || v > h) {
+            throw new Error(`Expected Range [${l}] to [${h}]: [${v}]`);
+        }
+    }
+
+    linearInterpolation(startValue, targetValue, completionProgress) {
+        this._assertEqual(typeof startValue, typeof targetValue);
+        this._assertInRange(completionProgress, 0, 1);
+        
+        if (typeof startValue === "number") {
+            return startValue + (targetValue - startValue) * completionProgress }
+        else {
+            return startValue.add(targetValue.sub(startValue).mul(completionProgress));
+        }
+    }
+
     handleTimeChange(deltaTime) {
         if (this._transitionList.length > 10) {
             throw new Error("Too Many Transitions");
@@ -97,7 +120,7 @@ export default class TransitionManager {
                         t.isCompleted = true;
                     }
                     else {
-                        t.currentValue = t.startValue + (t.targetValue - t.startValue) * t.completionProgress;
+                        t.currentValue = this.linearInterpolation(t.startValue, t.targetValue, t.completionProgress);
                     }
 
                     t.updateFn(t.currentValue);
