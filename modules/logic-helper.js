@@ -86,7 +86,7 @@ export default class LogicHelper {
         this._transitionManager.handleTimeChange(dT);
 
         // Step 3:  Adjust the pin location
-        this._stateManager.PinDeltaAngle = this.keyPressToDeltaAngle(
+        this._stateManager.PinDeltaAngle = dT * this.keyPressToDeltaAngle(
             userInput.leftKeyPress, userInput.rightKeyPress);
 
         // Step 4: Handle insertion attempt
@@ -100,6 +100,7 @@ export default class LogicHelper {
 
                 if (insertionResult == "succeed") {
                     this._stateManager.engageActivePin();
+                    this._soundFactory.playInsert();
                     this.animatePinInsertion();
                 }
                 else if (insertionResult == "fail") {
@@ -119,7 +120,6 @@ export default class LogicHelper {
                 this.animateVictory();
             }
             else {
-                this._soundFactory.playInsert();
                 this.animateKeyPlug();
             }
         }
@@ -128,20 +128,20 @@ export default class LogicHelper {
     keyPressToDeltaAngle(leftKeyPress, rightKeyPress) {
         switch (leftKeyPress) {
             case "short":
-                return 0.005;
+                return 0.0002;
             case "medium":
-                return 0.020;
+                return 0.0008;
             case "long":
-                return 0.050;
+                return 0.0020;
         }
 
         switch (rightKeyPress) {
             case "short":
-                return -0.005;
+                return -0.0002;
             case "medium":
-                return -0.020;
+                return -0.0008;
             case "long":
-                return -0.050;
+                return -0.0020;
         }
 
         return 0;

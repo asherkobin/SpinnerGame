@@ -29,7 +29,6 @@ export default class StateManager {
         this._currentState = {
             tumblerAngle: 0,
             lastTime: 0,
-            pinDeltaAngle: 0,
             lastLeftKeyDown: 0,
             lastRightKeyDown: 0,
             allPinsInserted: false,
@@ -125,13 +124,12 @@ export default class StateManager {
         return this._currentState.Pins.every(p => p.Engaged);
     }
 
-    get PinDeltaAngle() {
-        return this._currentState.pinDeltaAngle;
-    }
     set PinDeltaAngle(dTheta) {
-        this._currentState.pinDeltaAngle = dTheta;
-
         if (dTheta != 0) {
+            this._currentState.Pins.forEach(p => {
+                p.StartAngle += dTheta;
+            });
+        
             this.invalidateAll();
         }
     }

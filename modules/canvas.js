@@ -436,8 +436,6 @@ function drawTumbler(g) {
 
 function drawPins(g) {
     g.s.Pins.forEach((/** @type {PinInfo} p */ p, idx) => {
-        p.StartAngle += g.s.pinDeltaAngle;
-
         drawPin(g, p, idx == g.s.activePinIdx);
     });
 }

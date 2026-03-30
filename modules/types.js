@@ -45,7 +45,6 @@
  * @typedef {Object} State
  * @property {number} tumblerAngle
  * @property {number} lastTime
- * @property {number} pinDeltaAngle
  * @property {number} lastLeftKeyDown
  * @property {number} lastRightKeyDown
  * @property {boolean} allPinsInserted
