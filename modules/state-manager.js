@@ -37,7 +37,8 @@ export default class StateManager {
             needsRedraw: true,
             activePinIdx: -1,
             Pins: this._createPins(this._gameConfig.keyPins),
-            Win: false
+            winConditionMet: false,
+            previousAttemptWasFail: false
         }
 
         this.activateNextPin();
@@ -73,14 +74,17 @@ export default class StateManager {
 
         pinConfig.forEach(p => {
             /** @type {PinInfo} */
-            const pinInfo = {
-                AngularWidth: p.widthDeg * Math.PI / 180,
-                RadialWidth: p.depthPx,
-                RadialDistance: this._uiLayout.tumblerRadius + this._uiLayout.tumblerSpacing,
-                AngularPosition: p.startDeg * Math.PI / 180,
-                CutPosition: p.startDeg * Math.PI / 180,
-                PositionLocked: false,
-            }
+            const pinInfo = {};
+            
+            pinInfo.Engaged = false,
+            pinInfo.RadiusOpen = this._uiLayout.tumblerRadius + this._uiLayout.tumblerSpacing,
+            pinInfo.RadiusEngaged = 0;
+            pinInfo.SweepAngle = p.widthDeg * Math.PI / 180;
+            pinInfo.RadialWidth = p.depthPx;
+            pinInfo.Radius = pinInfo.Engaged ? pinInfo.RadiusEngaged : pinInfo.RadiusOpen;
+            pinInfo.StartAngle = p.startDeg * Math.PI / 180;
+            pinInfo.CutAngle = pinInfo.StartAngle;
+            pinInfo.CutDepth = this._uiLayout.tumblerRadius - pinInfo.RadialWidth;
 
             pinStates.push(pinInfo);
         });
@@ -110,8 +114,15 @@ export default class StateManager {
         this.invalidateAll();
     }
 
-    areAllPinsInserted() {
-        return this._currentState.Pins.every(p => p.Inserted);
+    engageActivePin() {
+        const activePin = this._currentState.Pins[this._currentState.activePinIdx];
+        
+        activePin.StartAngle = activePin.CutAngle;
+        activePin.Engaged = true;
+    }
+
+    areAllPinsEngaged() {
+        return this._currentState.Pins.every(p => p.Engaged);
     }
 
     get PinDeltaAngle() {
@@ -119,11 +130,42 @@ export default class StateManager {
     }
     set PinDeltaAngle(dTheta) {
         this._currentState.pinDeltaAngle = dTheta;
-        this.invalidateAll();
+
+        if (dTheta != 0) {
+            this.invalidateAll();
+        }
     }
 
-    get ActivePin() {
-        return this._currentState.Pins[this._currentState.activePinIdx];
+    /**
+     * @returns {string}
+     */
+    get ActivePinStatus() {
+        if (this._currentState.activePinIdx == -1) {
+            return "none";
+        }
+        else if (this._currentState.Pins[this._currentState.activePinIdx].Engaged) {
+            return "engaged";
+        }
+        else {
+            return "open";
+        }
+    }
+
+    get ActivePinAngle() {
+        return this._currentState.Pins[this._currentState.activePinIdx].StartAngle;
+    }
+    get ActivePinCutAngle() {
+        return this._currentState.Pins[this._currentState.activePinIdx].CutAngle;
+    }
+    get ActivePinCutDepth() {
+        return this._currentState.Pins[this._currentState.activePinIdx].CutDepth;
+    }
+    get ActivePinDistance() {
+        return this._currentState.Pins[this._currentState.activePinIdx].Radius;
+    }
+    set ActivePinDistance(v) {
+        this._currentState.Pins[this._currentState.activePinIdx].Radius = v;
+        this.invalidateAll();
     }
 
     get TumblerAngle() {
@@ -134,14 +176,30 @@ export default class StateManager {
         this.invalidateAll();
     }
 
+    get PlugAngle() {
+        return this._currentState.plugAngle;
+    }
+    set PlugAngle(v) {
+        this._currentState.plugAngle = v;
+        this.invalidateAll();
+    }
+
     get Win() {
-        return this._currentState.Win;
+        return this._currentState.winConditionMet;
     }
 
     set Win(v) {
-        if (this._currentState.Win != v) {
-            this._currentState.Win = v;
+        if (this._currentState.winConditionMet != v) {
+            this._currentState.winConditionMet = v;
             this.invalidateAll(); // TODO: only invalidate if value changes (for all state values)
         }
+    }
+
+    get PreviousAttemptWasFail() {
+        return this._currentState.previousAttemptWasFail;
+    }
+    set PreviousAttemptWasFail(v) {
+        this._currentState.previousAttemptWasFail = v;
+        this.invalidateAll();
     }
 }

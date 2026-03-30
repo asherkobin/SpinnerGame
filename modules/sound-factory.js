@@ -50,7 +50,13 @@ export default class SoundFactory {
     }
     
     stopAll() {
-        this.stopRotationLoop();
+        if (this._loopSrc) {
+            this._loopSrc.stop();
+            this._loopSrc = null;
+        }
+
+        this._ctx.close();
+        this._ctx = new AudioContext();
     }
     
     playNudge() {
@@ -71,13 +77,6 @@ export default class SoundFactory {
 
     startRotationLoop() {
         this._loopSrc = this._startBuf(this._rotateBuf, true);
-    }
-
-    stopRotationLoop() {
-        if (this._loopSrc) {
-            this._loopSrc.stop();
-            this._loopSrc = null;
-        }
     }
     
     stopRotationLoopWithRamp() {

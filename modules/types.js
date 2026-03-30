@@ -30,12 +30,15 @@
 
 /**
  * @typedef {Object} PinInfo
- * @property {number} AngularWidth
+ * @property {boolean} Engaged
+ * @property {number} RadiusOpen
+ * @property {number} RadiusEngaged
+ * @property {number} SweepAngle
  * @property {number} RadialWidth
- * @property {number} RadialDistance
- * @property {number} AngularPosition
- * @property {number} CutPosition
- * @property {boolean} PositionLocked
+ * @property {number} Radius
+ * @property {number} StartAngle
+ * @property {number} CutAngle
+ * @property {number} CutDepth
  */
 
 /**
@@ -50,7 +53,8 @@
  * @property {boolean} needsRedraw
  * @property {number} activePinIdx
  * @property {PinInfo[]} Pins
- * @property {boolean} Win
+ * @property {boolean} winConditionMet
+ * @property {boolean} previousAttemptWasFail
  */
 
 /**

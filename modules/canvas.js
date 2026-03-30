@@ -205,7 +205,7 @@ function drawCylinder(g) {
     ctx.save();
     ctx.translate(g.l.x, g.l.y);
 
-    if (g.s.Win) {
+    if (g.s.winConditionMet) {
         ctx.save();
         ctx.rotate(g.s.tumblerAngle);
     }
@@ -246,7 +246,7 @@ function drawCylinder(g) {
     ctx.textAlign = "center";
     ctx.strokeText("Kobin", logoW / 2, logoH - 5);
 
-    if (g.s.Win) {
+    if (false && g.s.winConditionMet) {
         ctx.fillStyle = "black";
         ctx.fillText("Kobin", logoW / 2, logoH - 5);
     }
@@ -268,7 +268,7 @@ function drawCylinder(g) {
     ctx.arc(1, 15, g.l.plugRadius + 2, 0, 2 * Math.PI);
     ctx.stroke();
 
-    if (g.s.Win) {
+    if (g.s.winConditionMet) {
         ctx.restore();
     }
 
@@ -357,9 +357,9 @@ function drawTumblerShape(g, offset) {
     ctx.moveTo(tumblerRadius, 0);
 
     g.s.Pins.forEach((/** @type {PinInfo} p */ p) => {
-        const startAngle = p.CutPosition + offset * 0.01;
-        const endAngle = startAngle + p.AngularWidth - offset * 0.01;
-        const cutDepth = tumblerRadius - p.RadialWidth;
+        const startAngle = p.CutAngle + offset * 0.01;
+        const endAngle = startAngle + p.SweepAngle - offset * 0.01;
+        const cutDepth = p.CutDepth + 5;
         
         ctx.arc(0, 0, tumblerRadius, curAngle, startAngle);
         ctx.lineTo(...pointOnCircle(0, 0, cutDepth, startAngle));
@@ -436,7 +436,7 @@ function drawTumbler(g) {
 
 function drawPins(g) {
     g.s.Pins.forEach((/** @type {PinInfo} p */ p, idx) => {
-        p.AngularPosition += g.s.pinDeltaAngle;
+        p.StartAngle += g.s.pinDeltaAngle;
 
         drawPin(g, p, idx == g.s.activePinIdx);
     });
@@ -490,15 +490,15 @@ function drawPin(g, pin, selected = false) {
 /** @param {PinInfo} pin */
 function calculatePinWedge(g, pin, offset) {
     const pinWedge = {};
-    let keyPinInnerRadius = pin.RadialDistance - offset;
-    let keyPinOuterRadius = keyPinInnerRadius + pin.RadialWidth - 6 + offset;
+    let keyPinInnerRadius = pin.Radius - offset;
+    let keyPinOuterRadius = keyPinInnerRadius + pin.RadialWidth - 8 + offset;
 
-    if (pin.PositionLocked) {
-        pin.AngularPosition = g.s.tumblerAngle + pin.CutPosition;
+    if (pin.Engaged) {
+        pin.StartAngle = g.s.tumblerAngle + pin.CutAngle;
     }
 
-    let startAngle = pin.AngularPosition - offset * 0.005;
-    let endAngle = startAngle + pin.AngularWidth + offset * 0.005;
+    let startAngle = pin.StartAngle - offset * 0.005;
+    let endAngle = startAngle + pin.SweepAngle + offset * 0.005;
 
     // adjust for padding
 
