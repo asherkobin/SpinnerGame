@@ -342,64 +342,64 @@ function drawKeyway(g) {
     ctx.stroke();
 }
 
-/**
- * Draws the ring with cuts for each pin
- * 
- * @param {Context} g 
- */
-function drawTumblerShape(g, offset) {
-    const ctx = g.l.c;
-    const tumblerRadius = g.l.tumblerRadius + offset;
+function createTumblerPath(tumblerRadius, pins) {
+    const tumblerPath = new Path2D();
     let curAngle = 0;
     
-    ctx.beginPath();
+    tumblerPath.moveTo(tumblerRadius, 0);
 
-    ctx.moveTo(tumblerRadius, 0);
-
-    g.s.Pins.forEach((/** @type {PinInfo} p */ p) => {
-        const startAngle = p.CutAngle + offset * 0.01;
-        const endAngle = startAngle + p.SweepAngle - offset * 0.01;
+    pins.forEach((/** @type {PinInfo} p */ p) => {
+        const startAngle = p.CutAngle;
+        const endAngle = startAngle + p.SweepAngle;
         const cutDepth = p.CutDepth + 5;
         
-        ctx.arc(0, 0, tumblerRadius, curAngle, startAngle);
-        ctx.lineTo(...pointOnCircle(0, 0, cutDepth, startAngle));
-        ctx.arc(0, 0, cutDepth, startAngle, endAngle);
-        ctx.lineTo(...pointOnCircle(0, 0, tumblerRadius, endAngle));
+        tumblerPath.arc(0, 0, tumblerRadius, curAngle, startAngle);
+        tumblerPath.lineTo(...pointOnCircle(0, 0, cutDepth, startAngle));
+        tumblerPath.arc(0, 0, cutDepth, startAngle, endAngle);
+        tumblerPath.lineTo(...pointOnCircle(0, 0, tumblerRadius, endAngle));
         
         curAngle = endAngle;
     });
     
-    ctx.arc(0, 0, tumblerRadius, curAngle, 2 * Math.PI);
-    ctx.closePath();
+    tumblerPath.arc(0, 0, tumblerRadius, curAngle, 2 * Math.PI);
+    tumblerPath.closePath();
+
+    return tumblerPath;
 }
 
-/**
- * Rotating ring that has cuts for each pin
- * 
- * @param {Context} g 
- */
 function drawTumbler(g) {
+    /** @type {CanvasRenderingContext2D} */
     const ctx = g.l.c;
-    const x = g.l.x;
-    const y = g.l.y;
     const tumblerRadius = g.l.tumblerRadius;   // outer rotating part with cuts
     const cylinderRadius = g.l.cylinderRadius; // inner part that has logo and key
+    const tumblerPath = createTumblerPath(tumblerRadius, g.s.Pins);
 
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(g.l.x, g.l.y);
     ctx.rotate(g.s.tumblerAngle);
 
-    drawTumblerShape(g, 0);
-    
-    // main color
-    ctx.fillStyle = g.l.colorInfo.Metal.TumblerStop1;
-    ctx.fill();
+    // dark outer stroke (thick)
 
-    const surfaceInfo = {
-        x: x - g.l.x,
-        y: y - g.l.y,
-        ir: cylinderRadius,
-        or: tumblerRadius };
+    ctx.strokeStyle = "rgb(50, 50, 50)";
+    ctx.lineWidth = 6;
+    ctx.stroke(tumblerPath);
+
+    // outer shadow
+    
+    ctx.strokeStyle = "rgba(20,20,20,0.5)";
+    ctx.lineWidth = 4;
+    ctx.stroke(tumblerPath);
+    
+    // fill interior
+
+    ctx.fillStyle = g.l.colorInfo.Metal.TumblerStop1;
+    ctx.fill(tumblerPath);
+    
+    // lighter inner stroke (covers inner bleed)
+    
+    ctx.strokeStyle = "rgba(200,200,200,.5)";
+    ctx.lineWidth = 4;
+    ctx.stroke(tumblerPath);
 
     // radial shadow
     const shadowGr = ctx.createRadialGradient(0, 0, cylinderRadius, 0, 0, tumblerRadius);
@@ -410,138 +410,181 @@ function drawTumbler(g) {
     shadowGr.addColorStop(1.0, "rgba(0, 0, 0, 0.10");
 
     ctx.fillStyle = shadowGr;
-    ctx.fill();
-
-    ctx.strokeStyle = "rgba(179,179,179,1.0)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    drawTumblerShape(g, 2);
-
-    ctx.strokeStyle = "rgba(20,20,20,0.8)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    drawTumblerShape(g, 2);
-
-    ctx.strokeStyle = "rgba(255,255,255,.2)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.fill(tumblerPath);
     
-    // machining 
+    // machining
+    const surfaceInfo = {
+        x: 0,
+        y: 0,
+        ir: cylinderRadius,
+        or: tumblerRadius };
+    
     drawMachinedSurfaceRadial(g, surfaceInfo);
 
     ctx.restore();
 }
 
 function drawPins(g) {
-    g.s.Pins.forEach((/** @type {PinInfo} p */ p, idx) => {
-        drawPin(g, p, idx == g.s.activePinIdx);
-    });
+    /** @type {CanvasRenderingContext2D} */
+    const ctx = g.l.c;
+    /** @type {PinInfo[]} */
+    const pins = g.s.Pins;
+    const activeIdx = g.s.activePinIdx;
+
+    ctx.save();
+    ctx.translate(g.l.x, g.l.y);
+    
+    for (let i = 0; i < pins.length; i++) {
+        if (i != activeIdx) {
+            drawPin(ctx, pins[i], false, g.s.tumblerAngle, g.l.colorInfo);
+        }
+    };
+
+    if (activeIdx != -1) {
+        drawPin(ctx, pins[activeIdx], true, g.s.tumblerAngle, g.l.colorInfo);
+    }
+
+    ctx.restore();
 }
 
-/** @param {PinInfo} pin */
-function drawPin(g, pin, selected = false) {
-    const ctx = g.l.c;
-    const pinWedge = calculatePinWedge(g, pin, 0);
+/**
+ * 
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {PinInfo} pinInfo 
+ * @param {boolean} isActive
+ * @param {number} tumblerAngle
+ * @param {import("./types.js").UIColor} uiColor
+ */
+function drawPin(ctx, pinInfo, isActive, tumblerAngle, uiColor) {
     
-    drawPinShape(g, pinWedge);
+    const pinShape = calculatePinShape(pinInfo, tumblerAngle);
+    const pinPath = createPinPath(pinShape);
 
-    if (pin.Miss) { // FIXME
-        ctx.fillStyle = "#a13b2f";
+    ctx.save();
+
+    if (!isActive && !pinInfo.Engaged) {
+        ctx.filter = "brightness(0.85)";
     }
     else {
-        ctx.fillStyle = g.l.colorInfo.Metal.PinStop1;
+        ctx.filter = "";
     }
 
-    ctx.fill();
+    // dark outer stroke (thick)
+
+    ctx.strokeStyle = "rgb(50, 50, 50)";
+    ctx.lineWidth = 7;
+    ctx.stroke(pinPath);
+
+    // outer shadow
     
-    ctx.strokeStyle = "rgba(179,179,179,1.0)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.strokeStyle = "rgba(20, 20, 20, 0.5)";
+    ctx.lineWidth = 4;
+    ctx.stroke(pinPath);
+    
+    // fill interior
 
-    const pinWedge1 = calculatePinWedge(g, pin, 2);
-    drawPinShape(g, pinWedge1);
+    ctx.fillStyle = uiColor.Metal.TumblerStop1;
+    ctx.fill(pinPath);
+    
+    // lighter inner stroke (covers inner bleed)
+    
+    ctx.strokeStyle = "rgba(200,200,200,.5)";
+    ctx.lineWidth = 4;
+    ctx.stroke(pinPath);
 
-    ctx.strokeStyle = "rgba(20,20,20,0.8)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.restore();
+    
+    if (isActive) {
+        const arrowInfo = { 
+            sa: pinShape.sa,
+            ea: pinShape.ea,
+            r: pinShape.ir + (pinShape.or - pinShape.ir) / 2,
+            c: "#8a6a2a" };
 
-    const pinWedge2 = calculatePinWedge(g, pin, 2);
-    drawPinShape(g, pinWedge2);
-
-    ctx.strokeStyle = "rgba(255,255,255,.2)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    if (selected) {
-        const localCtx = { 
-            sa: pinWedge.sa,
-            ea: pinWedge.ea,
-            r: -1 + pinWedge.ir + (pinWedge.or - pinWedge.ir) / 2,
-            c: "#6a4c1a"};
-
-        drawRadialArrow(g, localCtx);
+        drawRadialArrow(ctx, arrowInfo);
     }
 }
 
-/** @param {PinInfo} pin */
-function calculatePinWedge(g, pin, offset) {
-    const pinWedge = {};
-    let keyPinInnerRadius = pin.Radius - offset;
-    let keyPinOuterRadius = keyPinInnerRadius + pin.RadialWidth - 8 + offset;
+/**
+ * @typedef {object} PinShape
+ * @property {number} sa
+ * @property {number} ea
+ * @property {number} ir
+ * @property {number} or
+ */
 
-    if (pin.Engaged) {
-        pin.StartAngle = g.s.tumblerAngle + pin.CutAngle;
+/**
+ * 
+ * @param {PinInfo} pinInfo 
+ * @param {number} tumblerAngle 
+ * @returns {PinShape}
+ */
+function calculatePinShape(pinInfo, tumblerAngle) {
+    /** @type {PinShape} */
+    const pinShape = {};
+    let keyPinInnerRadius = pinInfo.Radius - 1;
+    let keyPinOuterRadius = keyPinInnerRadius + pinInfo.RadialWidth - 9;
+
+    if (pinInfo.Engaged) {
+        pinInfo.StartAngle = tumblerAngle + pinInfo.CutAngle;
     }
 
-    let startAngle = pin.StartAngle - offset * 0.005;
-    let endAngle = startAngle + pin.SweepAngle + offset * 0.005;
+    let startAngle = pinInfo.StartAngle;
+    let endAngle = startAngle + pinInfo.SweepAngle
 
     // adjust for padding
 
     const paddingAngle = 1 * Math.PI / 180; // one degree
     
-    startAngle += 3 * paddingAngle;
+    startAngle += 2 * paddingAngle;
     endAngle -= 2 * paddingAngle;
 
-    pinWedge.sa = startAngle;
-    pinWedge.ea = endAngle;
-    pinWedge.ir = keyPinInnerRadius;
-    pinWedge.or = keyPinOuterRadius;
+    pinShape.sa = startAngle;
+    pinShape.ea = endAngle;
+    pinShape.ir = keyPinInnerRadius;
+    pinShape.or = keyPinOuterRadius;
 
-    return pinWedge;
+    return pinShape;
 }
 
-function drawPinShape(g, pinWedge) {
-    const ctx = g.l.c;
-    
-    ctx.beginPath();
-    ctx.arc(g.l.x, g.l.y, pinWedge.or, pinWedge.sa, pinWedge.ea, false);
-    ctx.arc(g.l.x, g.l.y, pinWedge.ir, pinWedge.ea, pinWedge.sa, true);
-    ctx.closePath();
+/**
+ * @param {PinShape} pinShape 
+ * @returns {Path2D}
+ */
+function createPinPath(pinShape) {
+    const pinPath = new Path2D();
+
+    pinPath.arc(0, 0, pinShape.or, pinShape.sa, pinShape.ea, false);
+    pinPath.arc(0, 0, pinShape.ir, pinShape.ea - 0.01, pinShape.sa + 0.01, true);
+
+    pinPath.closePath();
+
+    return pinPath;
 }
 
-function drawRadialArrow(g, l) {
-    const ctx = g.l.c;
-    const arrowStart = l.sa + 0.08;
-    const arrowEnd = l.ea - 0.08;
-    const mr = l.r;
+/**
+ * @param {CanvasRenderingContext2D} ctx 
+ * @param {object} arrowInfo 
+ */
+function drawRadialArrow(ctx, arrowInfo) {
+    const arrowStart = arrowInfo.sa + 0.08;
+    const arrowEnd = arrowInfo.ea - 0.08;
+    const mr = arrowInfo.r;
     const ir = mr - 5;
     const or = mr + 5;
-    const [six, siy] = [...pointOnCircle(g.l.x, g.l.y, ir, arrowStart)];
-    const [sox, soy] = [...pointOnCircle(g.l.x, g.l.y, or, arrowStart)];
-    const [scx, scy] = [...pointOnCircle(g.l.x, g.l.y, mr, arrowStart - 0.05)];
-    const [eix, eiy] = [...pointOnCircle(g.l.x, g.l.y, ir, arrowEnd)];
-    const [eox, eoy] = [...pointOnCircle(g.l.x, g.l.y, or, arrowEnd)];
-    const [ecx, ecy] = [...pointOnCircle(g.l.x, g.l.y, mr, arrowEnd + 0.05)];
+    const [six, siy] = [...pointOnCircle(0, 0, ir, arrowStart)];
+    const [sox, soy] = [...pointOnCircle(0, 0, or, arrowStart)];
+    const [scx, scy] = [...pointOnCircle(0, 0, mr, arrowStart - 0.05)];
+    const [eix, eiy] = [...pointOnCircle(0, 0, ir, arrowEnd)];
+    const [eox, eoy] = [...pointOnCircle(0, 0, or, arrowEnd)];
+    const [ecx, ecy] = [...pointOnCircle(0, 0, mr, arrowEnd + 0.05)];
 
     ctx.lineWidth = 2;
-    ctx.strokeStyle = l.c;
-    ctx.fillStyle = l.c;
+    ctx.strokeStyle = arrowInfo.c;
+    ctx.fillStyle = arrowInfo.c;
     
     ctx.beginPath();
-    ctx.arc(g.l.x, g.l.y, mr, arrowStart, arrowEnd);
+    ctx.arc(0, 0, mr, arrowStart, arrowEnd);
     ctx.stroke();
 
     ctx.beginPath();

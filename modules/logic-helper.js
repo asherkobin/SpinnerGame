@@ -7,7 +7,6 @@
 import StateManager from "./state-manager.js";
 import SoundFactory from "./sound-factory.js";
 import TransitionManager from "./transition-manager.js";
-import { Vector2 } from "./vectors.js";
 
 export default class LogicHelper {
     /**
@@ -63,7 +62,7 @@ export default class LogicHelper {
             
             return (x >= bx && x <= bx + bw && y >= by && y <= by + bh);
         });
-
+ 
         return foundButton ?? null;
     }
 
@@ -86,7 +85,7 @@ export default class LogicHelper {
         this._transitionManager.handleTimeChange(dT);
 
         // Step 3:  Adjust the pin location
-        this._stateManager.PinDeltaAngle = dT * this.keyPressToDeltaAngle(
+        this._stateManager.PinDeltaAngle = dT * this.keyPressToRotationSpeed(
             userInput.leftKeyPress, userInput.rightKeyPress);
 
         // Step 4: Handle insertion attempt
@@ -125,7 +124,8 @@ export default class LogicHelper {
         }
     }
 
-    keyPressToDeltaAngle(leftKeyPress, rightKeyPress) {
+    /** @returns {number} rad/ms */
+    keyPressToRotationSpeed(leftKeyPress, rightKeyPress) {
         switch (leftKeyPress) {
             case "short":
                 return 0.0002;
@@ -247,7 +247,7 @@ export default class LogicHelper {
         await this.rotateKeyPlug( -2 * moveAngle, 0, 100);
     }
     
-    async rotateKeyPlug(rotateFrom, rotateTo, inThisMS) {
+    rotateKeyPlug(rotateFrom, rotateTo, inThisMS) {
         return new Promise(resolve => {
             this._transitionManager.createLinearTransiton(
                 v => { this._stateManager.PlugAngle = v; },

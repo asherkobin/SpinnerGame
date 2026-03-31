@@ -70,6 +70,7 @@ export default class StateManager {
 
     _createPins(pinConfig) {
         const pinStates = [];
+        const pinStartOffset = this._gameConfig.radomizePinPlacement ? Math.random() * 2 * Math.PI : 0;
 
         pinConfig.forEach(p => {
             /** @type {PinInfo} */
@@ -81,8 +82,8 @@ export default class StateManager {
             pinInfo.SweepAngle = p.widthDeg * Math.PI / 180;
             pinInfo.RadialWidth = p.depthPx;
             pinInfo.Radius = pinInfo.Engaged ? pinInfo.RadiusEngaged : pinInfo.RadiusOpen;
-            pinInfo.StartAngle = p.startDeg * Math.PI / 180;
-            pinInfo.CutAngle = pinInfo.StartAngle;
+            pinInfo.StartAngle = pinStartOffset + p.startDeg * Math.PI / 180;
+            pinInfo.CutAngle = p.startDeg * Math.PI / 180;
             pinInfo.CutDepth = this._uiLayout.tumblerRadius - pinInfo.RadialWidth;
 
             pinStates.push(pinInfo);
@@ -126,9 +127,14 @@ export default class StateManager {
 
     set PinDeltaAngle(dTheta) {
         if (dTheta != 0) {
-            this._currentState.Pins.forEach(p => {
-                p.StartAngle += dTheta;
-            });
+            if (this._gameConfig.movePinsTogether) {
+                this._currentState.Pins.forEach(p => {
+                    p.StartAngle += dTheta;
+                });
+            }
+            else {
+                this._currentState.Pins[this._currentState.activePinIdx].StartAngle += dTheta;
+            }
         
             this.invalidateAll();
         }

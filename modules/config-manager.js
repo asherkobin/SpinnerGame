@@ -18,7 +18,9 @@ const EasyConfig = {
     keyPins: [
         { startDeg: 0,   widthDeg: 30, depthPx: 30 },
         { startDeg: 45,  widthDeg: 20, depthPx: 40 },
-        { startDeg: 200, widthDeg: 50, depthPx: 20 }]
+        { startDeg: 200, widthDeg: 50, depthPx: 20 }],
+    movePinsTogether: true,
+    radomizePinPlacement: true
 }
 
 /** @type {MetalColor} */

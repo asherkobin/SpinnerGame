@@ -26,6 +26,8 @@
  * @property {number} numSpots
  * @property {number} numScratches
  * @property {Object} keyPins
+ * @property {boolean} movePinsTogether
+ * @property {boolean} radomizePinPlacement
  */
 
 /**
