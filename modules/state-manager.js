@@ -3,6 +3,8 @@
 /** @typedef {import("./types.js").Layout} Layout */
 /** @typedef {import("./types.js").PinInfo} PinInfo */
 
+import ConfigManager from "./config-manager.js";
+
 //
 // state manager
 //
@@ -11,13 +13,15 @@ export default class StateManager {
     /**
      * Constructor
      * 
-     * @param {Config} gameConfig
+     * @param {ConfigManager} configManager
      */
-    constructor(gameConfig, uiLayout) {
+    constructor(configManager) {
+        /** @type {ConfigManager} */
+        this._configManager = configManager;
         /** @type {Config} */
-        this._gameConfig = gameConfig;
+        this._gameConfig = configManager.Easy;
         /** @type {Layout} */
-        this._uiLayout = uiLayout;
+        this._uiLayout = configManager.Layout;
         
         this.loadFromConfig();
     }
@@ -35,13 +39,19 @@ export default class StateManager {
             plugAngle: 0,
             needsRedraw: true,
             activePinIdx: -1,
-            Pins: this._createPins(this._gameConfig.keyPins),
+            Pins: null,
             winConditionMet: false,
-            previousAttemptWasFail: false
+            previousAttemptWasFail: false,
+            playerLevel: 1,
+            playerScore: 0
         }
 
-        this.activateNextPin();
+        const pinConfig = this._configManager.generatePins({ 
+            Level: this._currentState.playerLevel,
+            Difficulty: "Easy" });
 
+        this._currentState.Pins = this._createPinState(pinConfig);
+        this.activateNextPin();
         this.invalidateAll();
     }
 
@@ -68,7 +78,7 @@ export default class StateManager {
         this._updateRegions.length = 0;
     }
 
-    _createPins(pinConfig) {
+    _createPinState(pinConfig) {
         const pinStates = [];
         const pinStartOffset = this._gameConfig.radomizePinPlacement ? Math.random() * 2 * Math.PI : 0;
 

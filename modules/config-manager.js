@@ -10,15 +10,12 @@
 /** @type {Config} */
 const EasyConfig = {
     matchTolerance: (Math.PI / 180) * 5,
-    tumblerVelocity: 0.006283 / 2,
+    tumblerVelocity: 0.006283 / 12,
     tumblerAcceleration: 0.000002,
     tumblerFriction: 0.94,
     numSpots: 10,
     numScratches: 50,
-    keyPins: [
-        { startDeg: 0,   widthDeg: 30, depthPx: 30 },
-        { startDeg: 45,  widthDeg: 20, depthPx: 40 },
-        { startDeg: 200, widthDeg: 50, depthPx: 20 }],
+    keyPins: [],
     movePinsTogether: true,
     radomizePinPlacement: true
 }
@@ -79,12 +76,12 @@ export default class ConfigManager
             h: gameHeight,
             x: gameWidth / 2,
             y: gameHeight / 2,
-            bh: 75,
+            bh: 50,
             bw: 150,
             bpx: 0,
-            bpy: gameHeight - 85,
+            bpy: gameHeight - 60,
             bpw: gameWidth - 20,
-            bph: 85,
+            bph: 60,
             tpx: 10,
             tpy: 10,
             tpw: gameWidth - 20,
@@ -143,5 +140,23 @@ export default class ConfigManager
         for (let i = 0; i < c.numScratches; i++) {
             l.plugScratchInfo.push(createParticle(0, l.plugRadius));
         }
+    }
+
+    generatePins(gameInfo) {
+        const pinInfo = [];
+
+        if (!gameInfo || !gameInfo.Level || !gameInfo.Difficulty) {
+            pinInfo.push({ startDeg: 0,   widthDeg: 30, depthPx: 30 });
+            pinInfo.push({ startDeg: 45,  widthDeg: 20, depthPx: 40 });
+            pinInfo.push({ startDeg: 200, widthDeg: 50, depthPx: 20 });
+        }
+        else {
+            const pinWidth = 10 + 40 * Math.random();
+            const pinDepth = 20 + 30 * Math.random();
+            
+            pinInfo.push({ startDeg: 45,  widthDeg: pinWidth, depthPx: pinDepth });
+        }
+
+        return pinInfo;
     }
 }

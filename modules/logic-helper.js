@@ -130,18 +130,18 @@ export default class LogicHelper {
             case "short":
                 return 0.0002;
             case "medium":
-                return 0.0008;
+                return 0.0010;
             case "long":
-                return 0.0020;
+                return 0.0040;
         }
 
         switch (rightKeyPress) {
             case "short":
                 return -0.0002;
             case "medium":
-                return -0.0008;
+                return -0.0010;
             case "long":
-                return -0.0020;
+                return -0.0040;
         }
 
         return 0;

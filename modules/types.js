@@ -56,6 +56,8 @@
  * @property {PinInfo[]} Pins
  * @property {boolean} winConditionMet
  * @property {boolean} previousAttemptWasFail
+ * @property {number} playerLevel
+ * @property {number} playerScore
  */
 
 /**

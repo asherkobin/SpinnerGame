@@ -1,7 +1,7 @@
 import InputEventManager from "./input-event-manager.js";
 import StateManager from "./state-manager.js";
 import { drawBackground, drawTitlePanel, drawStatusBox, drawTumbler }  from "./canvas.js";
-import { drawScratches, drawSpots, drawCylinder, drawPins, drawButtonPanel }  from "./canvas.js";
+import { drawGameInfoBox, drawCylinder, drawPins, drawButtonPanel }  from "./canvas.js";
 import SoundFactory from "./sound-factory.js";
 import LogicHelper from "./logic-helper.js";
 import ConfigManager from "./config-manager.js";
@@ -101,12 +101,11 @@ export default class GameManager {
         if (updateRegions.length > 0) {
             drawBackground(g);
             drawTitlePanel(g);
-            drawStatusBox(g);
+            drawGameInfoBox(g);
             drawTumbler(g);
-            drawScratches(g);
-            drawSpots(g);
             drawCylinder(g);
             drawPins(g)
+            drawStatusBox(g);
             drawButtonPanel(g);
 
             this._stateManager.clearUpdateRegions();

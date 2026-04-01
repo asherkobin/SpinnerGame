@@ -421,6 +421,9 @@ function drawTumbler(g) {
     
     drawMachinedSurfaceRadial(g, surfaceInfo);
 
+    drawScratches(ctx, g.l.scratchInfo);
+    drawSpots(ctx, g.l.spotInfo);
+
     ctx.restore();
 }
 
@@ -615,7 +618,7 @@ function drawBackground(c) {
     
     gr.addColorStop(0, c.l.colorInfo.LightBrown);
     gr.addColorStop(0.5, c.l.colorInfo.MediumBrown);
-    gr.addColorStop(1, c.l.colorInfo.DarkBrown);
+    gr.addColorStop(1, c.l.colorInfo.MediumBrown);
     ctx.fillStyle = gr;
     ctx.fillRect(0, 0, width, height);
 
@@ -675,6 +678,52 @@ function drawTitlePanel(c) {
     ctx.restore();
 }
 
+function drawGameInfoBox(g) {
+    const ctx = g.l.c;
+    const sbLeft = 10;
+    const sbTop = g.l.tph;
+    const sbWidth = g.l.w - 20;
+    const sbHeight = 30;
+    
+    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillRect(sbLeft, sbTop, sbWidth, sbHeight);
+    
+    ctx.save();
+    ctx.translate(sbLeft, sbTop);
+    
+    const line1 = "Level: II  /  Difficulty: Easy  /   Score: 200";
+
+    drawText(g, { t:line1, x:8, y:7 });
+    
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
+    ctx.lineWidth = 1;
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);            
+    ctx.lineTo(sbWidth, 0);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0); 
+    ctx.lineTo(0, sbHeight);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(0,0,0,0.5)";
+    ctx.lineWidth = 1;
+    
+    ctx.beginPath();
+    ctx.moveTo(sbWidth, 0);            
+    ctx.lineTo(sbWidth, sbHeight);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, sbHeight); 
+    ctx.lineTo(sbWidth, sbHeight);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
 function drawText(g, l) {
     const ctx = g.l.c;
     const text = l.t;
@@ -682,7 +731,7 @@ function drawText(g, l) {
     const y = l.y;
 
     ctx.textBaseline = "top";
-    ctx.font =  "16pt Cormorant Garamond";
+    ctx.font =  "20px Cormorant Garamond";
 
     // burned text
     ctx.shadowColor = "rgba(0,0,0,0.5)";
@@ -699,9 +748,9 @@ function drawText(g, l) {
 function drawStatusBox(g) {
     const ctx = g.l.c;
     const sbLeft = 10;
-    const sbTop = 90;
+    const sbTop = g.l.bpy - 70;
     const sbWidth = g.l.w - 20;
-    const sbHeight = 80;
+    const sbHeight = 60;
     const drawInset = false;
     
     ctx.fillStyle = "rgba(255,255,255,0.05)";
@@ -710,13 +759,11 @@ function drawStatusBox(g) {
     ctx.save();
     ctx.translate(sbLeft, sbTop);
     
-    const line1 = "To move the pin around the tumbler";
-    const line2 = "use the [Left] and [Right] keys. Press";
-    const line3 = "[Up] to insert the pin into the cut."
+    const line1 = "- Rotate the pin with [Left] and [Right]";
+    const line2 = "- Attempt to engage the pin with [Up]";
 
-    drawText(g, { t:line1, x:8, y:5 });
-    drawText(g, { t:line2, x:8, y:30 });
-    drawText(g, { t:line3, x:8, y:55 });
+    drawText(g, { t:line1, x:8, y:7 });
+    drawText(g, { t:line2, x:8, y:32 });
     
     ctx.strokeStyle = drawInset ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.5)";
     ctx.lineWidth = 1;
@@ -822,10 +869,10 @@ function drawButtonPanel(g) {
         ctx.translate(b.x, b.y);
 
         if (b.text == "...") {
-            drawEllipsis(g, { x: b.x, y: b.s == "pressed" ? b.y + 1 : b.y, w: b.w, h: b.h });
+            drawEllipsis(ctx, { x: b.x, y: b.s == "pressed" ? b.y + 1 : b.y - 2, w: b.w, h: b.h });
         }
         else {
-            drawFancyText(g, { t: b.text, x: b.x, y: b.s == "pressed" ? b.y + 1 : b.y, w: b.w, h: b.h });
+            drawFancyText(ctx, { t: b.text, x: b.x, y: b.s == "pressed" ? b.y + 1 : b.y - 2, w: b.w, h: b.h });
         }
 
         ctx.restore();
@@ -836,22 +883,19 @@ function drawButtonPanel(g) {
     ctx.restore();
 }
 
-function drawEllipsis(g, l) {
-    const ctx = g.l.c;
-    
-    ctx.font = "50px Filibuster NF";
+function drawEllipsis(ctx, rect) {
+    ctx.font = "40px Filibuster NF";
     const ellipsisWidth = ctx.measureText("...").width;
-    const ellipsisX = (l.w - ellipsisWidth) / 2;
+    const ellipsisX = (rect.w - ellipsisWidth) / 2;
     ctx.textBaseline = "top";
     ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillText("...", ellipsisX, l.y);
+    ctx.fillText("...", ellipsisX, rect.y);
 }
 
-function drawFancyText(g, l) {
-    const ctx = g.l.c;
-    const upperCase = l.t[0];
-    const lowerCase = l.t.substring(1);
-    const upperFont = "50px Filibuster NF";
+function drawFancyText(ctx, textInfo) {
+    const upperCase = textInfo.t[0];
+    const lowerCase = textInfo.t.substring(1);
+    const upperFont = "35px Filibuster NF";
     const lowerFont = "25px Filibuster NF";
 
     ctx.font = upperFont;
@@ -861,25 +905,19 @@ function drawFancyText(g, l) {
     const tmLower = ctx.measureText(lowerCase);
 
     const textWidth = tmUpper.width + tmLower.width;
-    const textX = (l.w - textWidth) / 2;
+    const textX = (textInfo.w - textWidth) / 2;
     
     ctx.font = upperFont;
     ctx.textBaseline = "middle";
     ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillText(upperCase, textX, l.y + (l.h / 2) + 2);
+    ctx.fillText(upperCase, textX, textInfo.y + (textInfo.h / 2) + 2);
     ctx.font = lowerFont;
     ctx.textBaseline = "top";
-    ctx.fillText(lowerCase, textX + tmUpper.width, l.y + (l.h / 2) - 2);
+    ctx.fillText(lowerCase, textX + tmUpper.width, textInfo.y + (textInfo.h / 2) - 2);
 }
 
-function drawSpots(g) {
-    const ctx = g.l.c;
-
-    ctx.save();
-    ctx.translate(g.l.x, g.l.y);
-    ctx.rotate(g.s.tumblerAngle);
-
-    g.l.spotInfo.forEach(p => {
+function drawSpots(ctx, spotInfo) {
+    spotInfo.forEach(p => {
         ctx.beginPath();
         ctx.arc(
             Math.cos(p.a) * p.r,
@@ -890,46 +928,26 @@ function drawSpots(g) {
         ctx.fillStyle = `rgba(0,0,0,${p.f * 0.4})`;
         ctx.fill();
     });
-
-    ctx.restore();
 }
         
-function drawScratches(g) {
-    const ctx = g.l.c
-    
-    ctx.save();
-    ctx.translate(g.l.x, g.l.y);
-    ctx.rotate(g.s.tumblerAngle);
-
+function drawScratches(ctx, scratchInfo) {
     ctx.strokeStyle = "rgba(0,0,0,0.05)";
     ctx.lineWidth = 0.5;
     
-    g.l.scratchInfo.forEach(s => {
+    scratchInfo.forEach(s => {
         ctx.beginPath();
         ctx.arc(0, 0, s.r, s.a, s.a + s.pa);
         ctx.stroke();
     });
-
-    ctx.restore();
 }
 
 export {
-    drawScratches,
-    drawSpots,
-    drawFancyText,
-    drawEllipsis,
     drawButtonPanel,
     drawStatusBox,
-    drawText,
     drawTitlePanel,
     drawBackground,
-    drawRadialArrow,
     drawPins,
-    drawPin,
     drawCylinder,
-    drawTextArc,
-    drawPlug,
-    drawTickMarks,
-    drawKeyway,
-    drawTumbler
+    drawTumbler,
+    drawGameInfoBox
 };
