@@ -16,7 +16,7 @@ const EasyConfig = {
     numSpots: 10,
     numScratches: 50,
     keyPins: [],
-    movePinsTogether: true,
+    movePinsTogether: false,
     radomizePinPlacement: true
 }
 
@@ -145,7 +145,7 @@ export default class ConfigManager
     generatePins(gameInfo) {
         const pinInfo = [];
 
-        if (!gameInfo || !gameInfo.Level || !gameInfo.Difficulty) {
+        if (true) {
             pinInfo.push({ startDeg: 0,   widthDeg: 30, depthPx: 30 });
             pinInfo.push({ startDeg: 45,  widthDeg: 20, depthPx: 40 });
             pinInfo.push({ startDeg: 200, widthDeg: 50, depthPx: 20 });
